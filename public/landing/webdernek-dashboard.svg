@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <linearGradient id="g" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#eef2ff"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="700" fill="url(#g)"/>
+  <rect x="40" y="40" width="1120" height="80" rx="10" fill="#4f46e5"/>
+  <rect x="40" y="140" width="1120" height="220" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="70" y="180" width="480" height="16" rx="8" fill="#16a34a"/>
+  <rect x="70" y="220" width="700" height="16" rx="8" fill="#f59e0b"/>
+  <rect x="70" y="260" width="520" height="16" rx="8" fill="#ef4444"/>
+  <rect x="70" y="300" width="900" height="16" rx="8" fill="#0ea5e9"/>
+  <rect x="40" y="380" width="1120" height="220" rx="12" fill="#ffffff" stroke="#e5e7eb"/>
+  <circle cx="300" cy="490" r="90" fill="#10b981" opacity="0.2"/>
+  <circle cx="300" cy="490" r="70" fill="#10b981" opacity="0.4"/>
+  <circle cx="300" cy="490" r="50" fill="#10b981"/>
+  <circle cx="900" cy="490" r="90" fill="#f97316" opacity="0.2"/>
+  <circle cx="900" cy="490" r="70" fill="#f97316" opacity="0.4"/>
+  <circle cx="900" cy="490" r="50" fill="#f97316"/>
+  <text x="60" y="95" font-size="28" font-family="Inter, Arial" fill="#fff">DEMO PANOSU</text>
+  <text x="60" y="170" font-size="18" font-family="Inter, Arial" fill="#111827">Genel Alacak Durumu</text>
+  <text x="60" y="420" font-size="18" font-family="Inter, Arial" fill="#111827">Gelir / Gider</text>
+</svg>

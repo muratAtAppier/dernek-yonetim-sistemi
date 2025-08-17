@@ -1,0 +1,458 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id                  String                   @id @default(cuid())
+  name                String
+  slug                String                   @unique
+  description         String?
+  address             String?
+  phone               String?
+  email               String?
+  website             String?
+  logoUrl             String?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  boards              Board[]
+  duesPlans           DuesPlan[]
+  financeTransactions FinanceTransaction[]
+  groups              Group[]
+  meetings            Meeting[]
+  members             Member[]
+  memberships         OrganizationMembership[]
+  tags                Tag[]
+  templates           Template[]
+}
+
+model Member {
+  id                  String               @id @default(cuid())
+  organizationId      String
+  firstName           String
+  lastName            String
+  nationalId          String?              @unique
+  email               String?
+  phone               String?
+  address             String?
+  occupation          String?
+  status              MemberStatus         @default(ACTIVE)
+  joinedAt            DateTime             @default(now())
+  leftAt              DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  photoUrl            String?
+  boardMemberships    BoardMember[]
+  financeTransactions FinanceTransaction[]
+  attendance          MeetingAttendance[]
+  invites             MeetingInvite[]
+  proxiesAsPrincipal  MeetingProxy[]       @relation("PrincipalMember")
+  proxiesAsProxy      MeetingProxy[]       @relation("ProxyMember")
+  organization        Organization         @relation(fields: [organizationId], references: [id])
+  groups              MemberGroup[]
+  tags                MemberTag[]
+}
+
+model User {
+  id            String                   @id @default(cuid())
+  name          String?
+  email         String?                  @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  accounts      Account[]
+  memberships   OrganizationMembership[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @map("refreshToken")
+  access_token      String? @map("accessToken")
+  expires_at        Int?    @map("expiresAt")
+  token_type        String? @map("tokenType")
+  scope             String?
+  id_token          String? @map("idToken")
+  session_state     String? @map("sessionState")
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model OrganizationMembership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           Role         @default(MEMBER)
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+model Tag {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  color          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  members        MemberTag[]
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name], name: "org_tag_name_unique")
+}
+
+model MemberTag {
+  memberId String
+  tagId    String
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([memberId, tagId])
+}
+
+model Group {
+  id             String        @id @default(cuid())
+  organizationId String
+  name           String
+  type           GroupType     @default(GROUP)
+  color          String?
+  description    String?
+  createdAt      DateTime      @default(now())
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members        MemberGroup[]
+
+  @@unique([organizationId, name, type])
+}
+
+model MemberGroup {
+  memberId  String
+  groupId   String
+  createdAt DateTime @default(now())
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@id([memberId, groupId])
+}
+
+model Template {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  description    String?
+  content        String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, slug], name: "org_template_slug_unique", map: "org_template_slug_unique")
+}
+
+model Board {
+  id             String          @id @default(cuid())
+  organizationId String
+  type           BoardType
+  name           String
+  description    String?
+  createdAt      DateTime        @default(now())
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  decisions      BoardDecision[]
+  terms          BoardTerm[]
+
+  @@unique([organizationId, type], name: "org_board_type_unique", map: "org_board_type_unique")
+}
+
+model BoardTerm {
+  id        String          @id @default(cuid())
+  boardId   String
+  name      String?
+  startDate DateTime        @default(now())
+  endDate   DateTime?
+  isActive  Boolean         @default(false)
+  createdAt DateTime        @default(now())
+  decisions BoardDecision[]
+  members   BoardMember[]
+  board     Board           @relation(fields: [boardId], references: [id], onDelete: Cascade)
+}
+
+model BoardMember {
+  memberId  String
+  termId    String
+  role      BoardMemberRole @default(MEMBER)
+  order     Int?
+  createdAt DateTime        @default(now())
+  member    Member          @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  term      BoardTerm       @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@id([memberId, termId])
+}
+
+model BoardDecision {
+  id           String     @id @default(cuid())
+  boardId      String
+  termId       String?
+  title        String
+  decisionNo   String?
+  decisionDate DateTime   @default(now())
+  content      String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  board        Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  term         BoardTerm? @relation(fields: [termId], references: [id])
+}
+
+model Meeting {
+  id             String              @id @default(cuid())
+  organizationId String
+  title          String
+  type           MeetingType         @default(OTHER)
+  scheduledAt    DateTime
+  location       String?
+  description    String?
+  status         MeetingStatus       @default(PLANNED)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @default(now()) @updatedAt
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  agendas        MeetingAgenda[]
+  attendance     MeetingAttendance[]
+  decisions      MeetingDecision[]
+  invites        MeetingInvite[]
+  minutes        MeetingMinutes?
+  proxies        MeetingProxy[]
+
+  @@index([organizationId, scheduledAt], map: "Meeting_org_scheduled_idx")
+}
+
+model MeetingAgenda {
+  id          String   @id @default(cuid())
+  meetingId   String
+  order       Int      @default(0)
+  title       String
+  description String?
+  createdAt   DateTime @default(now())
+  meeting     Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([meetingId, order], map: "MeetingAgenda_meeting_order_idx")
+}
+
+model MeetingInvite {
+  id          String       @id @default(cuid())
+  meetingId   String
+  memberId    String
+  status      InviteStatus @default(PENDING)
+  sentAt      DateTime?
+  respondedAt DateTime?
+  meeting     Meeting      @relation(fields: [meetingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  member      Member       @relation(fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([meetingId, memberId], map: "MeetingInvite_meeting_member_uq")
+}
+
+model MeetingAttendance {
+  meetingId             String
+  memberId              String
+  present               Boolean  @default(true)
+  representedByMemberId String?
+  createdAt             DateTime @default(now())
+  meeting               Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  member                Member   @relation(fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([meetingId, memberId])
+}
+
+model MeetingProxy {
+  meetingId         String
+  principalMemberId String
+  proxyMemberId     String
+  note              String?
+  createdAt         DateTime @default(now())
+  meeting           Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  principal         Member   @relation("PrincipalMember", fields: [principalMemberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  proxy             Member   @relation("ProxyMember", fields: [proxyMemberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([meetingId, principalMemberId])
+  @@unique([meetingId, proxyMemberId], map: "MeetingProxy_meeting_proxy_uq")
+}
+
+model MeetingMinutes {
+  meetingId String   @unique
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model MeetingDecision {
+  id           String   @id @default(cuid())
+  meetingId    String
+  title        String
+  decisionNo   String?
+  decisionDate DateTime @default(now())
+  content      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  meeting      Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([meetingId, decisionDate], map: "MeetingDecision_meeting_date_idx")
+}
+
+model DuesPlan {
+  id             String               @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  amount         Decimal              @db.Decimal(10, 2)
+  currency       String               @default("TRY")
+  frequency      FinanceFrequency
+  isActive       Boolean              @default(true)
+  createdAt      DateTime             @default(now()) @db.Timestamp(6)
+  periods        DuesPeriod[]
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transactions   FinanceTransaction[]
+
+  @@unique([organizationId, name], map: "DuesPlan_org_name_unique")
+}
+
+model DuesPeriod {
+  id           String               @id @default(cuid())
+  planId       String
+  name         String
+  startDate    DateTime             @db.Timestamp(6)
+  endDate      DateTime             @db.Timestamp(6)
+  dueDate      DateTime?            @db.Timestamp(6)
+  createdAt    DateTime             @default(now()) @db.Timestamp(6)
+  plan         DuesPlan             @relation(fields: [planId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transactions FinanceTransaction[]
+
+  @@unique([planId, name], map: "DuesPeriod_plan_name_unique")
+  @@index([planId, startDate, endDate], map: "DuesPeriod_plan_dates_idx")
+}
+
+model FinanceTransaction {
+  id             String                 @id @default(cuid())
+  organizationId String
+  memberId       String?
+  type           FinanceTransactionType
+  amount         Decimal                @db.Decimal(12, 2)
+  currency       String                 @default("TRY")
+  planId         String?
+  periodId       String?
+  paymentMethod  PaymentMethod?
+  receiptNo      String?
+  reference      String?
+  note           String?
+  txnDate        DateTime               @default(now()) @db.Timestamp(6)
+  createdAt      DateTime               @default(now()) @db.Timestamp(6)
+  updatedAt      DateTime               @default(now()) @updatedAt @db.Timestamp(6)
+  member         Member?                @relation(fields: [memberId], references: [id], onUpdate: NoAction)
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  period         DuesPeriod?            @relation(fields: [periodId], references: [id], onUpdate: NoAction)
+  plan           DuesPlan?              @relation(fields: [planId], references: [id], onUpdate: NoAction)
+
+  @@index([organizationId, type, planId, periodId, memberId], map: "FinanceTransaction_charge_guard_idx")
+  @@index([organizationId, memberId, type, txnDate], map: "FinanceTransaction_main_idx")
+}
+
+enum MemberStatus {
+  ACTIVE
+  PASSIVE
+  LEFT
+}
+
+enum GroupType {
+  GROUP
+  COMMISSION
+}
+
+enum Role {
+  SUPERADMIN
+  ADMIN
+  STAFF
+  MEMBER
+}
+
+enum BoardType {
+  EXECUTIVE
+  AUDIT
+}
+
+enum BoardMemberRole {
+  PRESIDENT
+  VICE_PRESIDENT
+  SECRETARY
+  TREASURER
+  MEMBER
+  SUPERVISOR
+}
+
+enum MeetingType {
+  GENERAL_ASSEMBLY
+  BOARD
+  COMMISSION
+  OTHER
+}
+
+enum MeetingStatus {
+  DRAFT
+  PLANNED
+  ONGOING
+  COMPLETED
+  CANCELED
+}
+
+enum InviteStatus {
+  PENDING
+  SENT
+  ACCEPTED
+  DECLINED
+}
+
+enum FinanceFrequency {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  ONE_TIME
+}
+
+enum FinanceTransactionType {
+  CHARGE
+  PAYMENT
+  REFUND
+  ADJUSTMENT
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CREDIT_CARD
+  OTHER
+}

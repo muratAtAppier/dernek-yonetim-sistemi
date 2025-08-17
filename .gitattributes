@@ -1,0 +1,14 @@
+# Auto-detect text files and ensure consistent EOL in repo
+* text=auto eol=lf
+
+# Keep images/binaries untouched
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.pdf binary
+*.docx binary
+
+# Lock large generated files
+*.bin -text
