@@ -1,11 +1,13 @@
 'use client'
 
 import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
 export default function SignInPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -40,13 +42,15 @@ export default function SignInPage() {
           onClick={async () => {
             setLoading(true)
             try {
+              // Use redirect:false so we can accurately detect success
               const res = await signIn('credentials', {
                 email,
                 password,
-                redirect: true,
+                redirect: false,
                 callbackUrl: '/org',
               })
-              if (!res || (res as any).error) alert('Giriş başarısız')
+              if (res?.ok) router.push(res.url || '/org')
+              else alert('Giriş başarısız')
             } finally {
               setLoading(false)
             }
