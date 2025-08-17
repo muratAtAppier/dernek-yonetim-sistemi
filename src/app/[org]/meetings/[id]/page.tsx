@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
-import MeetingDetailClient from './MeetingDetailClient.js'
+import MeetingDetailClient from './MeetingDetailClient'
 
 export default async function MeetingDetailPage({ params }: { params: { org: string; id: string } }) {
   const session = await getServerSession(authOptions)

@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '../../../../lib/auth'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { LinkButton } from '@/components/ui/link-button'
-import { BoardDetailClient } from '@/app/[org]/boards/[id]/BoardDetailClient.js'
+import { BoardDetailClient } from '@/app/[org]/boards/[id]/BoardDetailClient'
 
 async function getBoard(org: string, id: string) {
   const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/api/${org}/boards`, { cache: 'no-store' })
