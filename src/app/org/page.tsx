@@ -113,17 +113,39 @@ export default async function OrgsPage() {
                   <form
                     action={async () => {
                       'use server'
-                      // Safety re-check
-                      const isSuper =
-                        await prisma.organizationMembership.findFirst({
-                          where: {
-                            userId: session.user.id,
-                            role: 'SUPERADMIN',
-                          },
+                      try {
+                        // Safety re-check
+                        const isSuper =
+                          await prisma.organizationMembership.findFirst({
+                            where: {
+                              userId: session.user.id,
+                              role: 'SUPERADMIN',
+                            },
+                          })
+                        if (!isSuper) return
+
+                        // Üye var mı? Member FK RESTRICT olduğu için önce silinmeli.
+                        const memberCount = await prisma.member.count({
+                          where: { organizationId: o.id },
                         })
-                      if (!isSuper) return
-                      await prisma.organization.delete({ where: { id: o.id } })
-                      revalidatePath('/org')
+                        if (memberCount > 0) {
+                          throw new Error(
+                            'Önce derneğe bağlı üyeleri silin veya üyeleri başka bir derneğe taşıyın.'
+                          )
+                        }
+
+                        await prisma.organization.delete({
+                          where: { id: o.id },
+                        })
+                        revalidatePath('/org')
+                      } catch (err) {
+                        console.error('Organization delete failed', {
+                          orgId: o.id,
+                          error: err,
+                        })
+                        // Basit bir hata yükselt; prod'da digest oluşacak, dev'de mesaj görünecek.
+                        throw err
+                      }
                     }}
                   >
                     <ConfirmDeleteButton
