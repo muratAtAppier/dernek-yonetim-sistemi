@@ -37,7 +37,7 @@ model Member {
   organizationId      String
   firstName           String
   lastName            String
-  nationalId          String?              @unique
+  nationalId          String?
   email               String?
   phone               String?
   address             String?
@@ -58,6 +58,8 @@ model Member {
   groups              MemberGroup[]
   tags                MemberTag[]
   smsMessages         SmsMessage[]
+
+  @@unique([organizationId, nationalId], map: "Member_org_nationalId_unique")
 }
 
 model User {

@@ -264,7 +264,24 @@ export async function POST(
         { error: 'Validation', details: e.issues },
         { status: 400 }
       )
-    console.error(e)
+    // Prisma unique constraint / known errors
+    if (e?.code === 'P2002') {
+      const target = Array.isArray(e?.meta?.target)
+        ? (e.meta.target as string[]).join(',')
+        : e?.meta?.target
+      return NextResponse.json(
+        { error: 'Unique constraint', field: target },
+        { status: 409 }
+      )
+    }
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('MemberCreateError', e)
+      return NextResponse.json(
+        { error: 'Server error', detail: String(e?.message || e) },
+        { status: 500 }
+      )
+    }
+    console.error('MemberCreateError', e?.code || '', e?.message)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
