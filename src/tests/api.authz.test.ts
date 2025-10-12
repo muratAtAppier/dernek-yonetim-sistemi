@@ -8,6 +8,11 @@ vi.mock('../lib/prisma', () => ({
       ),
     },
     organizationMembership: {
+      findFirst: vi.fn(async ({ where }: any) =>
+        where.userId && where.role === 'SUPERADMIN' && where.userId === 'u1'
+          ? { id: 'super' }
+          : null
+      ),
       findUnique: vi.fn(async ({ where }: any) =>
         where.userId_organizationId?.userId === 'u1' ? { role: 'ADMIN' } : null
       ),
