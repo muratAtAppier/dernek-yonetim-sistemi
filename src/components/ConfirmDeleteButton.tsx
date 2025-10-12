@@ -16,14 +16,20 @@ export function ConfirmDeleteButton({
     <button
       type="submit"
       className={className}
-      disabled={pending}
+      // ÖNEMLİ: disabled attribute'u tıklama anında set edince bazı tarayıcılarda
+      // form submit iptal olabiliyor. Bunun yerine aria-disabled kullanıyoruz.
+      aria-disabled={pending}
+      data-pending={pending ? 'true' : 'false'}
       onClick={(e) => {
         if (pending) return
         if (!confirm(confirmMessage)) {
           e.preventDefault()
           return
         }
+        // Pending state'i göster ama butonu gerçek anlamda disable etme ki
+        // form submit işlemi gerçekleşsin.
         setPending(true)
+        // Eğer yine de kullanıcı tekrar tıklarsa engellemek için state kontrolü yeterli.
       }}
     >
       {pending ? 'Siliniyor…' : label}
