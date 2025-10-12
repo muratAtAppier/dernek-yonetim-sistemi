@@ -13,24 +13,37 @@ export const metadata: Metadata = {
   description: 'Çoklu dernek yönetimi için modern web uygulaması.',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="tr" suppressHydrationWarning>
       <body>
         <Providers>
           <header className="sticky top-0 z-30 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <nav className="mx-auto max-w-6xl px-4 h-14 flex items-center gap-4">
-              <Link href="/" className="font-semibold tracking-tight">DYS</Link>
+              <Link
+                href="/"
+                aria-label="Anasayfa"
+                className="font-semibold tracking-tight"
+              >
+                ANASAYFA
+              </Link>
               <div className="ml-auto flex items-center gap-2 text-sm">
-                <Link href="/org" className="px-2 py-1.5 rounded transition-colors hover:bg-accent hover:text-accent-foreground">Dernekler</Link>
+                <Link
+                  href="/org"
+                  className="px-2 py-1.5 rounded transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  Dernekler
+                </Link>
                 <HeaderActions />
                 <ThemeToggle />
               </div>
             </nav>
           </header>
-          <div className="mx-auto max-w-6xl px-4 py-6">
-            {children}
-          </div>
+          <div className="mx-auto max-w-6xl px-4 py-6">{children}</div>
         </Providers>
       </body>
     </html>
