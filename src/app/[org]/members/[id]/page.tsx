@@ -6,38 +6,76 @@ import { Suspense } from 'react'
 import { SendSmsButton } from './send-sms-button'
 import { TakePaymentButton } from './take-payment-button'
 import { MemberPayments } from './member-payments'
+import { prisma } from '@/lib/prisma'
+import { ensureOrgAccessBySlug } from '@/lib/authz'
 
 export default async function MemberDetailPage({
   params,
 }: {
-  params: { org: string; id: string }
+  params: Promise<{ org: string; id: string }>
 }) {
+  const { org, id } = await params
   const session = await getServerSession(authOptions)
-  if (!session) {
+  if (!session?.user?.id) {
     const { redirect } = await import('next/navigation')
     redirect('/auth/signin')
+    return null // TypeScript doesn't know redirect never returns
   }
 
-  async function getMember() {
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/api/${params.org}/members/${params.id}`,
-        { cache: 'no-store' }
-      )
-      if (!res.ok) return null as any
-      const data = await res.json()
-      return data as any
-    } catch {
-      return null as any
+  // Check organization access
+  const access = await ensureOrgAccessBySlug(session.user.id, org)
+  if (access.notFound || !access.allowed) {
+    return <div className="p-6">Dernek bulunamadı.</div>
+  }
+
+  // Get member directly from database
+  const member = await prisma.member.findFirst({
+    where: { id, organizationId: access.org.id },
+  })
+
+  if (!member) return <div className="p-6">Üye bulunamadı.</div>
+
+  // Calculate dues
+  const txns = await prisma.financeTransaction.findMany({
+    where: { organizationId: access.org.id, memberId: member.id },
+    select: { type: true, amount: true, planId: true, reference: true },
+  })
+
+  let borc = 0
+  let odenen = 0
+  let bagis = 0
+
+  for (const t of txns) {
+    const amt = Number(t.amount)
+    switch (t.type) {
+      case 'CHARGE':
+        borc += amt
+        break
+      case 'PAYMENT':
+        odenen += amt
+        if (
+          !t.planId &&
+          (t.reference?.toLowerCase().includes('bagis') ||
+            t.reference?.toLowerCase().includes('bağış') ||
+            t.reference?.toLowerCase().includes('donation'))
+        ) {
+          bagis += amt
+        }
+        break
+      case 'REFUND':
+        odenen -= amt
+        break
+      case 'ADJUSTMENT':
+        if (amt >= 0) odenen += amt
+        else borc += Math.abs(amt)
+        break
     }
   }
 
-  const detail = await getMember()
-  if (!detail?.item) return <div className="p-6">Üye bulunamadı.</div>
-  const item = detail.item
-  const dues = detail.dues as
-    | { borc: number; odenen: number; kalan: number; bagis: number }
-    | undefined
+  const kalan = borc - odenen
+  const dues = { borc, odenen, kalan, bagis }
+
+  const item = member
 
   function money(v: number | null | undefined) {
     if (v === null || v === undefined || isNaN(v)) return '-'
@@ -51,7 +89,7 @@ export default async function MemberDetailPage({
     <main>
       <Breadcrumbs
         items={[
-          { label: 'Üyeler', href: `/${params.org}/members` },
+          { label: 'Üyeler', href: `/${org}/members` },
           { label: item.firstName + ' ' + item.lastName },
         ]}
       />
@@ -61,17 +99,13 @@ export default async function MemberDetailPage({
         </h1>
         <div className="flex items-center gap-2">
           <LinkButton
-            href={`/${params.org}/members/${params.id}/edit`}
+            href={`/${org}/members/${id}/edit`}
             size="sm"
             variant="outline"
           >
             Düzenle
           </LinkButton>
-          <LinkButton
-            href={`/${params.org}/members`}
-            size="sm"
-            variant="outline"
-          >
+          <LinkButton href={`/${org}/members`} size="sm" variant="outline">
             Listeye Dön
           </LinkButton>
         </div>
@@ -83,7 +117,7 @@ export default async function MemberDetailPage({
               <h2 className="font-medium">Üye Bilgileri</h2>
               <div className="flex gap-2">
                 <LinkButton
-                  href={`/${params.org}/members/${params.id}/edit`}
+                  href={`/${org}/members/${id}/edit`}
                   size="sm"
                   variant="ghost"
                 >
@@ -117,9 +151,9 @@ export default async function MemberDetailPage({
               <h2 className="font-medium">Aidat Bilgileri</h2>
               <div className="flex gap-2">
                 <TakePaymentButton
-                  org={params.org}
-                  memberId={params.id}
-                  refreshPath={`/${params.org}/members/${params.id}`}
+                  org={org}
+                  memberId={id}
+                  refreshPath={`/${org}/members/${id}`}
                 />
               </div>
             </header>
@@ -153,11 +187,7 @@ export default async function MemberDetailPage({
               <h2 className="font-medium">İletişim Bilgileri</h2>
               <div className="flex gap-2">
                 <Suspense>
-                  <SendSmsButton
-                    org={params.org}
-                    memberId={params.id}
-                    phone={item.phone}
-                  />
+                  <SendSmsButton org={org} memberId={id} phone={item.phone} />
                 </Suspense>
               </div>
             </header>
@@ -179,7 +209,7 @@ export default async function MemberDetailPage({
               <h2 className="font-medium">Ödeme Geçmişi</h2>
             </header>
             <div className="p-3">
-              <MemberPayments org={params.org} memberId={params.id} />
+              <MemberPayments org={org} memberId={id} />
             </div>
           </section>
         </div>
