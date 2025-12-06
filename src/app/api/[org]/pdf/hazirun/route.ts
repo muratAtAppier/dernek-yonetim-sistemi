@@ -5,28 +5,14 @@ import { ensureOrgAccessBySlug } from '../../../../../lib/authz'
 
 export const runtime = 'nodejs'
 
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ org: string }> }
+async function generateHazirunPDF(
+  members: Array<{
+    firstName: string
+    lastName: string
+    nationalId: string | null
+    phone: string | null
+  }>
 ) {
-  const { org } = await params
-  const session = await getSession()
-  if (!session?.user)
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const access = await ensureOrgAccessBySlug(session.user.id as string, org)
-  if (access.notFound)
-    return NextResponse.json({ error: 'Dernek bulunamadı' }, { status: 404 })
-  if (!access.allowed)
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-  const url = new URL(req.url)
-  const take = Math.min(Number(url.searchParams.get('take') || '200'), 1000)
-  const members = await prisma.member.findMany({
-    where: { organizationId: access.org.id },
-    orderBy: { lastName: 'asc' },
-    take,
-  })
-
   const rows = members
     .map(
       (m, i) =>
@@ -61,16 +47,82 @@ export async function GET(
       printBackground: true,
       margin: { top: '20mm', right: '12mm', bottom: '20mm', left: '12mm' },
     })
-    // Create a Blob from the bytes to satisfy BodyInit cleanly
-    const bytes = new Uint8Array(pdf)
-    const blob = new Blob([bytes], { type: 'application/pdf' })
-    return new NextResponse(blob, {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="hazirun-${new Date().toISOString().slice(0, 10)}.pdf"`,
-      },
-    })
+    return pdf
   } finally {
     await browser.close()
   }
+}
+
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ org: string }> }
+) {
+  const { org } = await params
+  const session = await getSession()
+  if (!session?.user)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await ensureOrgAccessBySlug(session.user.id as string, org)
+  if (access.notFound)
+    return NextResponse.json({ error: 'Dernek bulunamadı' }, { status: 404 })
+  if (!access.allowed)
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const url = new URL(req.url)
+  const take = Math.min(Number(url.searchParams.get('take') || '200'), 1000)
+  const members = await prisma.member.findMany({
+    where: { organizationId: access.org.id },
+    orderBy: { lastName: 'asc' },
+    take,
+  })
+
+  const pdf = await generateHazirunPDF(members)
+  const bytes = new Uint8Array(pdf)
+  const blob = new Blob([bytes], { type: 'application/pdf' })
+  return new NextResponse(blob, {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="hazirun-${new Date().toISOString().slice(0, 10)}.pdf"`,
+    },
+  })
+}
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ org: string }> }
+) {
+  const { org } = await params
+  const session = await getSession()
+  if (!session?.user)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const access = await ensureOrgAccessBySlug(session.user.id as string, org)
+  if (access.notFound)
+    return NextResponse.json({ error: 'Dernek bulunamadı' }, { status: 404 })
+  if (!access.allowed)
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const body = await req.json()
+  const { ids } = body as { ids?: string[] }
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return NextResponse.json({ error: 'ids gerekli' }, { status: 400 })
+  }
+
+  // Fetch only the selected members
+  const members = await prisma.member.findMany({
+    where: {
+      organizationId: access.org.id,
+      id: { in: ids },
+    },
+    orderBy: { lastName: 'asc' },
+  })
+
+  const pdf = await generateHazirunPDF(members)
+  const bytes = new Uint8Array(pdf)
+  const blob = new Blob([bytes], { type: 'application/pdf' })
+  return new NextResponse(blob, {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="hazirun-${new Date().toISOString().slice(0, 10)}.pdf"`,
+    },
+  })
 }

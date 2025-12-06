@@ -133,14 +133,46 @@ export default async function MemberDetailPage({
                 <div className="col-span-2">{item.lastName}</div>
                 <div className="text-muted-foreground">TC</div>
                 <div className="col-span-2">{item.nationalId || '-'}</div>
-                <div className="text-muted-foreground">Ünvan</div>
+                <div className="text-muted-foreground">Statü</div>
                 <div className="col-span-2">
-                  {/* placeholder for future title field */}-
+                  {(item as any).title
+                    ? (item as any).title === 'BASKAN'
+                      ? 'Yönetim Kurulu Başkanı'
+                      : (item as any).title === 'BASKAN_YARDIMCISI'
+                        ? 'Yönetim Kurulu Başkan Yardımcısı'
+                        : (item as any).title === 'SEKRETER'
+                          ? 'Sekreter'
+                          : (item as any).title === 'SAYMAN'
+                            ? 'Sayman'
+                            : (item as any).title === 'YONETIM_KURULU_ASIL'
+                              ? 'Yönetim Kurulu Üyesi (Asil)'
+                              : (item as any).title === 'DENETIM_KURULU_BASKANI'
+                                ? 'Denetim Kurulu Başkanı'
+                                : (item as any).title === 'DENETIM_KURULU_ASIL'
+                                  ? 'Denetim Kurulu Üyesi (Asil)'
+                                  : (item as any).title ===
+                                      'YONETIM_KURULU_YEDEK'
+                                    ? 'Yönetim Kurulu Üyesi (Yedek)'
+                                    : (item as any).title ===
+                                        'DENETIM_KURULU_YEDEK'
+                                      ? 'Denetim Kurulu Üyesi (Yedek)'
+                                      : (item as any).title === 'UYE'
+                                        ? 'Üye'
+                                        : (item as any).title
+                    : '-'}
                 </div>
                 <div className="text-muted-foreground">Giriş Tarihi</div>
                 <div className="col-span-2">
                   {item.joinedAt
                     ? new Date(item.joinedAt).toLocaleDateString('tr-TR')
+                    : '-'}
+                </div>
+                <div className="text-muted-foreground">Kayıt Tarihi</div>
+                <div className="col-span-2">
+                  {(item as any).registeredAt
+                    ? new Date((item as any).registeredAt).toLocaleDateString(
+                        'tr-TR'
+                      )
                     : '-'}
                 </div>
               </div>
@@ -202,6 +234,8 @@ export default async function MemberDetailPage({
               </div>
               <div className="text-muted-foreground">Meslek</div>
               <div className="col-span-3">{item.occupation || '-'}</div>
+              <div className="text-muted-foreground">Üye Durumu</div>
+              <div className="col-span-3">{item.status}</div>
             </div>
           </section>
           <section className="rounded border bg-card text-sm">

@@ -43,8 +43,10 @@ model Member {
   phone               String?
   address             String?
   occupation          String?
+  title               MemberTitle?           // Statü field
   status              MemberStatus           @default(ACTIVE)
   joinedAt            DateTime               @default(now())
+  registeredAt        DateTime?              // Kayıt Tarihi field
   leftAt              DateTime?
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt
@@ -471,6 +473,19 @@ enum MemberStatus {
   ACTIVE
   PASSIVE
   LEFT
+}
+
+enum MemberTitle {
+  BASKAN                    // Yönetim Kurulu Başkanı
+  BASKAN_YARDIMCISI        // Yönetim Kurulu Başkan Yardımcısı
+  SEKRETER                 // Sekreter
+  SAYMAN                   // Sayman
+  YONETIM_KURULU_ASIL      // Yönetim Kurulu Üyesi (Asil)
+  DENETIM_KURULU_BASKANI   // Denetim Kurulu Başkanı
+  DENETIM_KURULU_ASIL      // Denetim Kurulu Üyesi (Asil)
+  YONETIM_KURULU_YEDEK     // Yönetim Kurulu Üyesi (Yedek)
+  DENETIM_KURULU_YEDEK     // Denetim Kurulu Üyesi (Yedek)
+  UYE                      // Üye
 }
 
 enum GroupType {

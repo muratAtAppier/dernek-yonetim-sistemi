@@ -1,0 +1,6 @@
+-- CreateEnum
+CREATE TYPE "public"."MemberTitle" AS ENUM ('BASKAN', 'BASKAN_YARDIMCISI', 'SEKRETER', 'SAYMAN', 'YONETIM_KURULU_ASIL', 'DENETIM_KURULU_BASKANI', 'DENETIM_KURULU_ASIL', 'YONETIM_KURULU_YEDEK', 'DENETIM_KURULU_YEDEK', 'UYE');
+
+-- AlterTable
+ALTER TABLE "public"."Member" ADD COLUMN     "registeredAt" TIMESTAMP(3),
+ADD COLUMN     "title" "public"."MemberTitle";

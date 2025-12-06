@@ -16,6 +16,21 @@ const CreateMember = z.object({
     .union([z.string().min(5, 'Telefon çok kısa'), z.literal('')])
     .optional(),
   status: z.enum(['ACTIVE', 'PASSIVE', 'LEFT']).optional(),
+  title: z
+    .enum([
+      'BASKAN',
+      'BASKAN_YARDIMCISI',
+      'SEKRETER',
+      'SAYMAN',
+      'YONETIM_KURULU_ASIL',
+      'DENETIM_KURULU_BASKANI',
+      'DENETIM_KURULU_ASIL',
+      'YONETIM_KURULU_YEDEK',
+      'DENETIM_KURULU_YEDEK',
+      'UYE',
+    ])
+    .nullable()
+    .optional(),
   nationalId: z
     .union([
       z.string().regex(/^\d{11}$/, 'TC Kimlik No 11 haneli olmalı'),
@@ -29,6 +44,14 @@ const CreateMember = z.object({
     .union([z.string().min(2, 'Meslek çok kısa'), z.literal('')])
     .optional(),
   joinedAt: z.preprocess((v) => {
+    if (v === '' || v === undefined || v === null) return undefined
+    if (typeof v === 'string' || v instanceof Date) {
+      const d = new Date(v as any)
+      return isNaN(d.getTime()) ? undefined : d
+    }
+    return undefined
+  }, z.date().optional()),
+  registeredAt: z.preprocess((v) => {
     if (v === '' || v === undefined || v === null) return undefined
     if (typeof v === 'string' || v instanceof Date) {
       const d = new Date(v as any)
@@ -60,6 +83,10 @@ export async function GET(
     | 'PASSIVE'
     | 'LEFT'
     | null
+  const titleIds = url.searchParams
+    .getAll('title')
+    .map((t) => t.trim())
+    .filter(Boolean)
   const tagIds = url.searchParams
     .getAll('tag')
     .map((t) => t.trim())
@@ -97,6 +124,39 @@ export async function GET(
   }
   if (status && ['ACTIVE', 'PASSIVE', 'LEFT'].includes(status))
     where.status = status
+
+  // Handle title filtering
+  const filteredTitleIds = titleIds.filter((t) => t !== '__ALL__')
+  if (filteredTitleIds.length > 0) {
+    const hasNull = filteredTitleIds.includes('null')
+    const actualTitles = filteredTitleIds.filter((t) => t !== 'null')
+
+    if (hasNull && actualTitles.length > 0) {
+      // Both null and actual titles selected - need to use AND with OR for titles
+      const titleCondition = {
+        OR: [{ title: { in: actualTitles } }, { title: null }],
+      }
+      if (where.OR) {
+        // If there's already an OR (from search query), wrap it in AND
+        const searchOr = where.OR
+        delete where.OR
+        if (Array.isArray(where.AND))
+          where.AND.push({ OR: searchOr }, titleCondition)
+        else if (where.AND)
+          where.AND = [where.AND, { OR: searchOr }, titleCondition]
+        else where.AND = [{ OR: searchOr }, titleCondition]
+      } else {
+        where.AND = [titleCondition]
+      }
+    } else if (hasNull) {
+      // Only null selected
+      where.title = null
+    } else if (actualTitles.length > 0) {
+      // Only actual titles selected
+      where.title =
+        actualTitles.length === 1 ? actualTitles[0] : { in: actualTitles }
+    }
+  }
 
   if (tagIds.length > 0) {
     if (tagsMode === 'and') {
@@ -246,6 +306,7 @@ export async function POST(
           data.phone && data.phone.length > 0 ? data.phone : undefined
         ),
         status: data.status ?? 'ACTIVE',
+        ...((data as any).title ? { title: (data as any).title } : {}),
         nationalId:
           data.nationalId && data.nationalId.length > 0
             ? data.nationalId
@@ -257,7 +318,10 @@ export async function POST(
             ? data.occupation
             : undefined,
         joinedAt: data.joinedAt ?? undefined,
-      },
+        ...((data as any).registeredAt
+          ? { registeredAt: (data as any).registeredAt }
+          : {}),
+      } as any,
       select: { id: true },
     })
     return NextResponse.json({ item: created }, { status: 201 })

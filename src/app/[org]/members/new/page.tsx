@@ -26,7 +26,23 @@ const schema = z.object({
   address: z.string().min(3, 'Adres çok kısa').optional().or(z.literal('')),
   occupation: z.string().min(2, 'Meslek çok kısa').optional().or(z.literal('')),
   joinedAt: z.string().optional().or(z.literal('')),
+  registeredAt: z.string().optional().or(z.literal('')),
   status: z.enum(['ACTIVE', 'PASSIVE', 'LEFT']).optional(),
+  title: z
+    .enum([
+      'BASKAN',
+      'BASKAN_YARDIMCISI',
+      'SEKRETER',
+      'SAYMAN',
+      'YONETIM_KURULU_ASIL',
+      'DENETIM_KURULU_BASKANI',
+      'DENETIM_KURULU_ASIL',
+      'YONETIM_KURULU_YEDEK',
+      'DENETIM_KURULU_YEDEK',
+      'UYE',
+    ])
+    .nullable()
+    .optional(),
   // --- Initial Finance optional fields (light validation, further checked client-side) ---
   initialFinanceType: z.string().optional(),
   initialFinanceAmount: z.string().optional(), // will parse manually
@@ -86,6 +102,8 @@ export default function NewMemberPage({ params }: any) {
     Array<{ id: string; name: string; planId: string }>
   >([])
   const [financeOpen, setFinanceOpen] = React.useState(false)
+  const [photoFile, setPhotoFile] = React.useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = React.useState<string | null>(null)
 
   // Load plans when finance section opened
   React.useEffect(() => {
@@ -231,6 +249,28 @@ export default function NewMemberPage({ params }: any) {
           }
           const created = await res.json()
           const memberId = created?.item?.id
+
+          // Upload photo if provided
+          if (memberId && photoFile) {
+            const fd = new FormData()
+            fd.append('file', photoFile)
+            const photoRes = await fetch(
+              `/api/${params.org}/members/${memberId}/photo`,
+              {
+                method: 'POST',
+                body: fd,
+              }
+            )
+            if (!photoRes.ok) {
+              const d = await photoRes.json().catch(() => null)
+              add({
+                variant: 'error',
+                title: 'Fotoğraf yüklenemedi',
+                description: d?.error,
+              })
+            }
+          }
+
           if (memberId && parsedAmount && initialFinanceType) {
             // Post finance transaction
             const finRes = await fetch(
@@ -335,7 +375,7 @@ export default function NewMemberPage({ params }: any) {
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium">Kayıt Tarihi</label>
+            <label className="block text-sm font-medium">Giriş Tarihi</label>
             <input
               type="date"
               className="mt-1 w-full border rounded px-3 py-2"
@@ -344,6 +384,57 @@ export default function NewMemberPage({ params }: any) {
             {errors.joinedAt && (
               <p className="text-sm text-red-600">
                 {String(errors.joinedAt.message)}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium">Kayıt Tarihi</label>
+            <input
+              type="date"
+              className="mt-1 w-full border rounded px-3 py-2"
+              {...register('registeredAt')}
+            />
+            {errors.registeredAt && (
+              <p className="text-sm text-red-600">
+                {String(errors.registeredAt.message)}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Statü</label>
+            <select
+              className="mt-1 w-full border rounded px-3 py-2"
+              {...register('title')}
+            >
+              <option value="">Seçiniz</option>
+              <option value="BASKAN">Yönetim Kurulu Başkanı</option>
+              <option value="BASKAN_YARDIMCISI">
+                Yönetim Kurulu Başkan Yardımcısı
+              </option>
+              <option value="SEKRETER">Sekreter</option>
+              <option value="SAYMAN">Sayman</option>
+              <option value="YONETIM_KURULU_ASIL">
+                Yönetim Kurulu Üyesi (Asil)
+              </option>
+              <option value="DENETIM_KURULU_BASKANI">
+                Denetim Kurulu Başkanı
+              </option>
+              <option value="DENETIM_KURULU_ASIL">
+                Denetim Kurulu Üyesi (Asil)
+              </option>
+              <option value="YONETIM_KURULU_YEDEK">
+                Yönetim Kurulu Üyesi (Yedek)
+              </option>
+              <option value="DENETIM_KURULU_YEDEK">
+                Denetim Kurulu Üyesi (Yedek)
+              </option>
+              <option value="UYE">Üye</option>
+            </select>
+            {errors.title && (
+              <p className="text-sm text-red-600">
+                {errors.title.message as string}
               </p>
             )}
           </div>
@@ -385,6 +476,60 @@ export default function NewMemberPage({ params }: any) {
               <option value="LEFT">LEFT</option>
             </select>
           </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Fotoğraf</label>
+          {photoPreview ? (
+            <div className="mt-2 flex items-center gap-3">
+              <img
+                src={photoPreview}
+                alt="Üye fotoğrafı"
+                className="w-16 h-16 rounded object-cover border"
+              />
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded border"
+                onClick={() => {
+                  setPhotoFile(null)
+                  setPhotoPreview(null)
+                }}
+              >
+                Dosya seçilmedi
+              </button>
+            </div>
+          ) : (
+            <input
+              type="file"
+              accept="image/*"
+              className="mt-2"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                if (!file.type.startsWith('image/')) {
+                  add({
+                    variant: 'error',
+                    title: 'Sadece resim dosyaları yüklenebilir',
+                  })
+                  return
+                }
+                const max = 5 * 1024 * 1024 // 5MB
+                if (file.size > max) {
+                  add({
+                    variant: 'error',
+                    title: 'Dosya çok büyük',
+                    description: 'Maksimum 5MB yükleyebilirsiniz.',
+                  })
+                  return
+                }
+                setPhotoFile(file)
+                const reader = new FileReader()
+                reader.onloadend = () => {
+                  setPhotoPreview(reader.result as string)
+                }
+                reader.readAsDataURL(file)
+              }}
+            />
+          )}
         </div>
         <div className="pt-4 border-t mt-8">
           <div className="flex items-center justify-between mb-2">

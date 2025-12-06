@@ -15,10 +15,8 @@ export default async function FinancePage({ params }: any) {
 
   async function getRole() {
     try {
-      const access = await ensureOrgAccessBySlug(
-        session.user?.id as string,
-        org
-      )
+      if (!session?.user?.id) return null
+      const access = await ensureOrgAccessBySlug(session.user.id, org)
       if (!access.allowed) return null
       return access.role as 'SUPERADMIN' | 'ADMIN' | 'STAFF' | 'MEMBER'
     } catch {

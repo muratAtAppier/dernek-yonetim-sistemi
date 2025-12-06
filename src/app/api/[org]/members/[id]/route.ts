@@ -11,6 +11,21 @@ const UpdateMember = z.object({
   email: z.string().email().nullable().optional(),
   phone: z.string().min(5, 'Telefon çok kısa').nullable().optional(),
   status: z.enum(['ACTIVE', 'PASSIVE', 'LEFT']).optional(),
+  title: z
+    .enum([
+      'BASKAN',
+      'BASKAN_YARDIMCISI',
+      'SEKRETER',
+      'SAYMAN',
+      'YONETIM_KURULU_ASIL',
+      'DENETIM_KURULU_BASKANI',
+      'DENETIM_KURULU_ASIL',
+      'YONETIM_KURULU_YEDEK',
+      'DENETIM_KURULU_YEDEK',
+      'UYE',
+    ])
+    .nullable()
+    .optional(),
   nationalId: z
     .string()
     .regex(/^\d{11}$/, 'TC Kimlik No 11 haneli olmalı')
@@ -19,6 +34,14 @@ const UpdateMember = z.object({
   address: z.string().min(3, 'Adres çok kısa').nullable().optional(),
   occupation: z.string().min(2, 'Meslek çok kısa').nullable().optional(),
   joinedAt: z.preprocess((v) => {
+    if (v === '' || v === undefined || v === null) return undefined
+    if (typeof v === 'string' || v instanceof Date) {
+      const d = new Date(v as any)
+      return isNaN(d.getTime()) ? undefined : d
+    }
+    return undefined
+  }, z.date().optional()),
+  registeredAt: z.preprocess((v) => {
     if (v === '' || v === undefined || v === null) return undefined
     if (typeof v === 'string' || v instanceof Date) {
       const d = new Date(v as any)
@@ -132,11 +155,17 @@ export async function PATCH(
         email: data.email === '' ? null : data.email,
         phone: normalizePhoneNumber(data.phone === '' ? null : data.phone),
         status: data.status,
+        ...((data as any).title !== undefined
+          ? { title: (data as any).title }
+          : {}),
         nationalId: data.nationalId === '' ? null : (data.nationalId as any),
         address: data.address === '' ? null : (data.address as any),
         occupation: data.occupation === '' ? null : (data.occupation as any),
         joinedAt: data.joinedAt,
-      },
+        ...((data as any).registeredAt !== undefined
+          ? { registeredAt: (data as any).registeredAt }
+          : {}),
+      } as any,
       select: { id: true },
     })
     return NextResponse.json({ item: updated })
