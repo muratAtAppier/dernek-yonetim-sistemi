@@ -32,6 +32,12 @@ export default async function OrgHomePage({
     if (!access.allowed)
       return <div className="p-6">Bu derneğe erişiminiz yok.</div>
 
+    // Get user's firstName for greeting
+    const user = await prisma.user.findUnique({
+      where: { id: session.user!.id as string },
+      select: { firstName: true },
+    })
+
     // Get statistics for the dashboard
     const [
       memberCount,
@@ -210,7 +216,9 @@ export default async function OrgHomePage({
     return (
       <div>
         <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-2">Hoş Geldiniz</h2>
+          <h2 className="text-2xl font-bold mb-2">
+            {user?.firstName ? `Merhaba ${user.firstName},` : 'Merhaba,'}
+          </h2>
           <p className="text-muted-foreground">
             {access.org.name} yönetim paneline hoş geldiniz
           </p>

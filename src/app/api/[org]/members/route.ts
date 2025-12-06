@@ -4,6 +4,7 @@ import { prisma } from '../../../../lib/prisma'
 import { getSession } from '../../../../lib/auth'
 import { ensureOrgAccessBySlug, WRITE_ROLES } from '../../../../lib/authz'
 import { Prisma } from '@prisma/client'
+import { normalizePhoneNumber } from '../../../../lib/utils'
 
 const CreateMember = z.object({
   firstName: z.string().min(1, 'Ad zorunludur'),
@@ -241,7 +242,9 @@ export async function POST(
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email && data.email.length > 0 ? data.email : undefined,
-        phone: data.phone && data.phone.length > 0 ? data.phone : undefined,
+        phone: normalizePhoneNumber(
+          data.phone && data.phone.length > 0 ? data.phone : undefined
+        ),
         status: data.status ?? 'ACTIVE',
         nationalId:
           data.nationalId && data.nationalId.length > 0

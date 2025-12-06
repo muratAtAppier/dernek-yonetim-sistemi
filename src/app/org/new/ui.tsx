@@ -3,7 +3,6 @@
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { slugify } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -12,10 +11,8 @@ import { useToast } from '@/components/ui/toast'
 
 const schema = z.object({
   name: z.string().min(3, 'En az 3 karakter'),
-  slug: z
-    .string()
-    .min(3, 'En az 3 karakter')
-    .regex(/^[a-z0-9-]+$/, 'Sadece küçük harf, rakam ve tire'),
+  responsibleFirstName: z.string().min(2, 'En az 2 karakter'),
+  responsibleLastName: z.string().min(2, 'En az 2 karakter'),
   description: z.string().optional(),
   email: z.string().email('Geçerli e‑posta girin').optional(),
   phone: z.string().optional(),
@@ -33,8 +30,8 @@ export default function NewOrganizationForm() {
     register,
     handleSubmit,
     setValue,
-  setError,
-  formState: { errors, isSubmitting },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
 
   return (
@@ -59,43 +56,72 @@ export default function NewOrganizationForm() {
         } else {
           const data = await res.json().catch(() => null)
           // Try to map validation issues to fields
-          const issues = (data?.details as Array<{ path?: (string | number)[]; message?: string }> | undefined) ?? []
+          const issues =
+            (data?.details as
+              | Array<{ path?: (string | number)[]; message?: string }>
+              | undefined) ?? []
           if (Array.isArray(issues) && issues.length > 0) {
             issues.forEach((i) => {
-              const name = Array.isArray(i.path) ? (i.path.join('.') as keyof FormValues) : undefined
+              const name = Array.isArray(i.path)
+                ? (i.path.join('.') as keyof FormValues)
+                : undefined
               if (name && i.message) {
                 // @ts-ignore react-hook-form name typing
                 setError(name, { type: 'server', message: i.message })
               }
             })
           }
-          toast.add({ variant: 'error', title: 'Hata', description: data?.error ?? 'Kaydetme hatası' })
+          toast.add({
+            variant: 'error',
+            title: 'Hata',
+            description: data?.error ?? 'Kaydetme hatası',
+          })
         }
       })}
     >
-  <div className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-1">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-2">
           <label className="block text-sm font-medium">Ad</label>
           <Input
             className="mt-1"
             {...register('name')}
-            onChange={(e) => {
-              const val = e.target.value
-              setValue('name', val)
-              setValue('slug', slugify(val))
-            }}
             placeholder="Örn: İstanbul Yazılım Derneği"
           />
           {errors.name && (
-            <p className="mt-1 text-sm text-red-600">{errors.name.message as string}</p>
+            <p className="mt-1 text-sm text-red-600">
+              {errors.name.message as string}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-1">
+          <label className="block text-sm font-medium">Sorumlu Kişi Adı</label>
+          <Input
+            className="mt-1"
+            {...register('responsibleFirstName')}
+            placeholder="Ad"
+          />
+          {errors.responsibleFirstName && (
+            <p className="mt-1 text-sm text-red-600">
+              {errors.responsibleFirstName.message as string}
+            </p>
           )}
         </div>
         <div className="sm:col-span-1">
-          <label className="block text-sm font-medium">Slug</label>
-          <Input className="mt-1" {...register('slug')} placeholder="istanbul-yazilim-dernegi" />
-          <p className="mt-1 text-xs text-muted-foreground">URL'de kullanılacak benzersiz kısa ad.</p>
-          {errors.slug && (
-            <p className="mt-1 text-sm text-red-600">{errors.slug.message as string}</p>
+          <label className="block text-sm font-medium">
+            Sorumlu Kişi Soyadı
+          </label>
+          <Input
+            className="mt-1"
+            {...register('responsibleLastName')}
+            placeholder="Soyad"
+          />
+          {errors.responsibleLastName && (
+            <p className="mt-1 text-sm text-red-600">
+              {errors.responsibleLastName.message as string}
+            </p>
           )}
         </div>
       </div>
@@ -103,35 +129,59 @@ export default function NewOrganizationForm() {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-1">
           <label className="block text-sm font-medium">E‑posta</label>
-          <Input className="mt-1" {...register('email')} placeholder="info@ornek.org" />
+          <Input
+            className="mt-1"
+            {...register('email')}
+            placeholder="info@ornek.org"
+          />
           {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email.message as string}</p>
+            <p className="mt-1 text-sm text-red-600">
+              {errors.email.message as string}
+            </p>
           )}
         </div>
         <div className="sm:col-span-1">
           <label className="block text-sm font-medium">Telefon</label>
-          <Input className="mt-1" {...register('phone')} placeholder="(5xx) xxx xx xx" />
+          <Input
+            className="mt-1"
+            {...register('phone')}
+            placeholder="(5xx) xxx xx xx"
+          />
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-1">
           <label className="block text-sm font-medium">Website</label>
-          <Input className="mt-1" {...register('website')} placeholder="https://ornek.org" />
+          <Input
+            className="mt-1"
+            {...register('website')}
+            placeholder="https://ornek.org"
+          />
           {errors.website && (
-            <p className="mt-1 text-sm text-red-600">{errors.website.message as string}</p>
+            <p className="mt-1 text-sm text-red-600">
+              {errors.website.message as string}
+            </p>
           )}
         </div>
         <div className="sm:col-span-1">
           <label className="block text-sm font-medium">Adres</label>
-          <Input className="mt-1" {...register('address')} placeholder="Açık adres" />
+          <Input
+            className="mt-1"
+            {...register('address')}
+            placeholder="Açık adres"
+          />
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-1">
           <label className="block text-sm font-medium">Logo URL</label>
-          <Input className="mt-1" {...register('logoUrl')} placeholder="https://.../logo.png" />
+          <Input
+            className="mt-1"
+            {...register('logoUrl')}
+            placeholder="https://.../logo.png"
+          />
         </div>
       </div>
 
@@ -148,7 +198,9 @@ export default function NewOrganizationForm() {
       <Separator />
 
       <div className="flex gap-2">
-        <Button disabled={isSubmitting}>{isSubmitting ? 'Kaydediliyor…' : 'Kaydet'}</Button>
+        <Button disabled={isSubmitting}>
+          {isSubmitting ? 'Kaydediliyor…' : 'Kaydet'}
+        </Button>
       </div>
     </form>
   )

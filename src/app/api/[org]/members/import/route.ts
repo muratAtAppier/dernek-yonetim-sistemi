@@ -4,6 +4,7 @@ import { getSession } from '../../../../../lib/auth'
 import { ensureOrgAccessBySlug, WRITE_ROLES } from '../../../../../lib/authz'
 import { parse } from 'csv-parse/sync'
 import * as XLSX from 'xlsx'
+import { normalizePhoneNumber } from '../../../../../lib/utils'
 
 type Row = Partial<{
   firstName: string
@@ -150,7 +151,7 @@ export async function POST(
         firstName,
         lastName,
         email,
-        phone: (r.phone || '').trim() || null,
+        phone: normalizePhoneNumber((r.phone || '').trim() || null),
         nationalId,
         status: (r.status as any) || 'ACTIVE',
         address: (r.address || '').trim() || null,

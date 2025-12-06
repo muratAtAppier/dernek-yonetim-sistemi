@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../../../../../lib/prisma'
 import { getSession } from '../../../../../lib/auth'
 import { ensureOrgAccessBySlug, WRITE_ROLES } from '../../../../../lib/authz'
+import { normalizePhoneNumber } from '../../../../../lib/utils'
 
 const UpdateMember = z.object({
   firstName: z.string().min(1).optional(),
@@ -129,7 +130,7 @@ export async function PATCH(
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email === '' ? null : data.email,
-        phone: data.phone === '' ? null : data.phone,
+        phone: normalizePhoneNumber(data.phone === '' ? null : data.phone),
         status: data.status,
         nationalId: data.nationalId === '' ? null : (data.nationalId as any),
         address: data.address === '' ? null : (data.address as any),
