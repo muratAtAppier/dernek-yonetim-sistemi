@@ -42,6 +42,33 @@ export function hasAnyRole(role: OrgRole | null, allowed: OrgRole[]): boolean {
   return allowed.includes(role)
 }
 
+export async function getUserRoleInfo(userId: string): Promise<{
+  isSuperAdmin: boolean
+  firstOrg: { slug: string; name: string } | null
+}> {
+  if (!userId) return { isSuperAdmin: false, firstOrg: null }
+
+  const superMembership = await prisma.organizationMembership.findFirst({
+    where: { userId, role: 'SUPERADMIN' },
+    select: { id: true },
+  })
+
+  if (superMembership) {
+    return { isSuperAdmin: true, firstOrg: null }
+  }
+
+  // Get first org for ADMIN role
+  const adminMembership = await prisma.organizationMembership.findFirst({
+    where: { userId, role: 'ADMIN' },
+    include: { organization: { select: { slug: true, name: true } } },
+  })
+
+  return {
+    isSuperAdmin: false,
+    firstOrg: adminMembership?.organization || null,
+  }
+}
+
 export async function ensureOrgAccessBySlug(
   userId: string,
   orgSlug: string,

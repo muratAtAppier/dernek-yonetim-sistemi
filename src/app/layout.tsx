@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button } from '../components/ui/button'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { HeaderActions } from '../components/HeaderActions'
+import { DerneklerLink } from '@/components/DerneklerLink'
 // If ThemeToggle exists elsewhere, update the path accordingly, for example:
 // import { ThemeToggle } from '../components/ui/ThemeToggle'
 
@@ -32,12 +33,7 @@ export default function RootLayout({
                 ANASAYFA
               </Link>
               <div className="ml-auto flex items-center gap-2 text-sm">
-                <Link
-                  href="/org"
-                  className="px-2 py-1.5 rounded transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  Dernekler
-                </Link>
+                <DerneklerLink />
                 <HeaderActions />
                 <ThemeToggle />
               </div>
