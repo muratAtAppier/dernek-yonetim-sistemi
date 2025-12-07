@@ -8,7 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { useToast } from '@/components/ui/toast'
 
-export default function NewMeetingPage({ params: paramsPromise }: any) {
+export default function NewMeetingPage({
+  params: paramsPromise,
+}: {
+  params: Promise<{ org: string }>
+}) {
   const params = use(paramsPromise)
   const router = useRouter()
   const [title, setTitle] = useState('')

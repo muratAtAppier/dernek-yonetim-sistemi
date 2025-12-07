@@ -42,7 +42,9 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-export default function EditMemberPage(props: any) {
+export default function EditMemberPage(props: {
+  params: Promise<{ org: string; id: string }>
+}) {
   const params = use(props.params)
   const router = useRouter()
   const {

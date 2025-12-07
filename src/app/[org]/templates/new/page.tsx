@@ -8,7 +8,11 @@ import { Input } from '@/components/ui/input'
 import { TemplatePreviewModal } from '../../../../components/TemplatePreviewModal'
 import { useRouter } from 'next/navigation'
 
-export default function NewTemplatePage({ params: paramsPromise }: any) {
+export default function NewTemplatePage({
+  params: paramsPromise,
+}: {
+  params: Promise<{ org: string }>
+}) {
   const params = React.use(paramsPromise)
   const router = useRouter()
   const [name, setName] = React.useState('Örnek Şablon')

@@ -9,7 +9,11 @@ import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 
-export default function EditTemplatePage({ params: paramsPromise }: any) {
+export default function EditTemplatePage({
+  params: paramsPromise,
+}: {
+  params: Promise<{ org: string; slug: string }>
+}) {
   const params = React.use(paramsPromise)
   const router = useRouter()
   const [loading, setLoading] = React.useState(true)

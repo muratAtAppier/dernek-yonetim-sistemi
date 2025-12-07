@@ -393,7 +393,7 @@ export default function KasaClient({
                       }`}
                     >
                       {tx.type === 'GELIR' || tx.type === 'PAYMENT' ? '+' : '-'}
-                      {formatCurrency(Number(tx.amount))}
+                      {formatCurrency(Math.abs(Number(tx.amount)))}
                     </p>
                   </div>
                 </div>
