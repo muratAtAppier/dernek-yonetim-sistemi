@@ -118,7 +118,7 @@ export default async function BoardDetailPage(props: any) {
 
   if (!board) {
     const { notFound } = await import('next/navigation')
-    notFound()
+    return notFound()
   }
 
   const canWrite = role === 'SUPERADMIN' || role === 'ADMIN' || role === 'STAFF'
