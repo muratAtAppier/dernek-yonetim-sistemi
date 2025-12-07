@@ -111,7 +111,7 @@ export default function Hero() {
                 Giriş Yap
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </LinkButton>
-              <Link href="/org/new">
+              <Link href="/contact">
                 <Button
                   variant="outline"
                   className="px-8 h-11 text-base bg-background/80 backdrop-blur-sm hover:bg-background border-2"
