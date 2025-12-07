@@ -24,7 +24,7 @@ type BoardMember = {
     | 'MEMBER'
     | 'SUPERVISOR'
   memberType: 'ASIL' | 'YEDEK'
-  order: number
+  order: number | null
   member: MemberLite
 }
 
