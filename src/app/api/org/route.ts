@@ -5,6 +5,7 @@ import { prisma } from '../../../lib/prisma'
 import { getSession } from '../../../lib/auth'
 import { isSuperAdmin } from '../../../lib/authz'
 import { normalizePhoneNumber } from '../../../lib/utils'
+import { uploadFile } from '../../../lib/storage'
 
 const CreateOrg = z.object({
   name: z.string().min(3),
@@ -15,7 +16,6 @@ const CreateOrg = z.object({
   phone: z.string().optional(),
   email: z.string().email().optional(),
   website: z.string().url().optional(),
-  logoUrl: z.string().url().optional(),
 })
 
 export async function GET() {
@@ -54,8 +54,35 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
-    const json = await req.json()
-    const data = CreateOrg.parse(json)
+    const form = await req.formData()
+
+    // Extract form fields
+    const formData = {
+      name: form.get('name') as string,
+      responsibleFirstName: form.get('responsibleFirstName') as string,
+      responsibleLastName: form.get('responsibleLastName') as string,
+      description: form.get('description') as string | undefined,
+      address: form.get('address') as string | undefined,
+      phone: form.get('phone') as string | undefined,
+      email: form.get('email') as string | undefined,
+      website: form.get('website') as string | undefined,
+    }
+
+    const data = CreateOrg.parse(formData)
+
+    // Handle logo upload if provided
+    let logoUrl: string | undefined = undefined
+    const logoFile = form.get('logo') as File | null
+    if (logoFile && logoFile.size > 0) {
+      const bytes = await logoFile.arrayBuffer()
+      const buffer = Buffer.from(bytes)
+      const uploaded = await uploadFile(
+        buffer,
+        logoFile.type || 'application/octet-stream',
+        { prefix: 'orgs/logos' }
+      )
+      logoUrl = uploaded.url
+    }
 
     // Auto-generate slug from name
     const slugify = (str: string) => {
@@ -93,7 +120,7 @@ export async function POST(req: Request) {
         phone: normalizePhoneNumber(data.phone),
         email: data.email,
         website: data.website,
-        logoUrl: data.logoUrl,
+        logoUrl: logoUrl,
         memberships: {
           create: {
             userId: session.user.id,

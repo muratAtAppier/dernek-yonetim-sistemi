@@ -446,11 +446,6 @@ export default function FinanceClient({
                             <div className="font-medium text-gray-900">
                               {b.name ?? b.memberId}
                             </div>
-                            {b.name && (
-                              <div className="text-xs text-gray-500">
-                                ID: {b.memberId}
-                              </div>
-                            )}
                           </Link>
                         </td>
                         <td className="py-3 text-right font-mono text-sm text-red-600">
@@ -652,11 +647,6 @@ export default function FinanceClient({
                             <div className="font-medium text-gray-900">
                               {b.name ?? b.memberId}
                             </div>
-                            {b.name && (
-                              <div className="text-xs text-gray-500">
-                                ID: {b.memberId}
-                              </div>
-                            )}
                           </Link>
                         </td>
                         <td className="py-3 px-4 text-right font-mono text-sm text-gray-700">

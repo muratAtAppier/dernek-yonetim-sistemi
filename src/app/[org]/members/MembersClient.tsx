@@ -13,6 +13,7 @@ export type MemberItem = {
   phone: string | null
   nationalId: string | null
   status: 'ACTIVE' | 'PASSIVE' | 'LEFT'
+  title: string | null
   // optional tags included by API enrichment
   tags?: Array<{ id: string; name: string; color?: string | null }>
 }

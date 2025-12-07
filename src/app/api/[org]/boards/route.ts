@@ -29,14 +29,19 @@ export async function GET(
   if (!access.allowed)
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const items = await (prisma as any).board.findMany({
+  const items = await prisma.board.findMany({
     where: { organizationId: access.org.id },
     orderBy: [{ type: 'asc' }],
     include: {
       terms: {
         where: { isActive: true },
         take: 1,
-        include: { members: { include: { member: true } }, decisions: false },
+        include: {
+          members: {
+            include: { member: true },
+            orderBy: { order: 'asc' },
+          },
+        },
       },
     },
   })
@@ -64,28 +69,36 @@ export async function POST(
   try {
     const body = await req.json()
     const data = CreateBoard.parse(body)
-    const created = await (prisma as any).board.create({
+
+    console.log('Creating board:', data, 'for org:', access.org.id)
+
+    const created = await prisma.board.create({
       data: {
         organizationId: access.org.id,
         type: data.type,
         name: data.name,
-        description: data.description,
+        description: data.description || null,
       },
     })
+
+    console.log('Board created:', created.id)
     return NextResponse.json({ item: created }, { status: 201 })
   } catch (e: any) {
+    console.error('Board creation error:', e)
     if (e?.issues)
       return NextResponse.json(
         { error: 'Validation', details: e.issues },
         { status: 400 }
       )
-    if (String(e).includes('org_board_type_unique'))
+    if (String(e).includes('org_board_type_unique') || e?.code === 'P2002')
       return NextResponse.json(
         { error: 'Bu tipte kurul zaten var' },
         { status: 409 }
       )
-    console.error(e)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Server error', detail: e?.message || String(e) },
+      { status: 500 }
+    )
   }
 }
 
@@ -110,13 +123,13 @@ export async function PATCH(
   try {
     const body = await req.json()
     const data = UpdateBoard.parse(body)
-    const existing = await (prisma as any).board.findFirst({
+    const existing = await prisma.board.findFirst({
       where: { id: data.id, organizationId: access.org.id },
     })
     if (!existing)
       return NextResponse.json({ error: 'Kurul bulunamadı' }, { status: 404 })
 
-    const updated = await (prisma as any).board.update({
+    const updated = await prisma.board.update({
       where: { id: existing.id },
       data: {
         name: data.name ?? existing.name,
@@ -159,12 +172,12 @@ export async function DELETE(
   const url = new URL(req.url)
   const id = url.searchParams.get('id') || ''
   if (!id) return NextResponse.json({ error: 'id gerekli' }, { status: 400 })
-  const existing = await (prisma as any).board.findFirst({
+  const existing = await prisma.board.findFirst({
     where: { id, organizationId: access.org.id },
   })
   if (!existing)
     return NextResponse.json({ error: 'Kurul bulunamadı' }, { status: 404 })
 
-  await (prisma as any).board.delete({ where: { id: existing.id } })
+  await prisma.board.delete({ where: { id: existing.id } })
   return NextResponse.json({ ok: true })
 }

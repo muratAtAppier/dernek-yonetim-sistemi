@@ -412,8 +412,9 @@ export default function NewMemberPage({
             <select
               className="mt-1 w-full border rounded px-3 py-2"
               {...register('title')}
+              defaultValue="UYE"
             >
-              <option value="">Seçiniz</option>
+              <option value="UYE">Üye</option>
               <option value="BASKAN">Yönetim Kurulu Başkanı</option>
               <option value="BASKAN_YARDIMCISI">
                 Yönetim Kurulu Başkan Yardımcısı
@@ -435,7 +436,6 @@ export default function NewMemberPage({
               <option value="DENETIM_KURULU_YEDEK">
                 Denetim Kurulu Üyesi (Yedek)
               </option>
-              <option value="UYE">Üye</option>
             </select>
             {errors.title && (
               <p className="text-sm text-red-600">

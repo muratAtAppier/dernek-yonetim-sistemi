@@ -21,6 +21,7 @@ type Member = {
   phone: string | null
   nationalId: string | null
   status: 'ACTIVE' | 'PASSIVE' | 'LEFT'
+  title: string | null
   tags?: Tag[]
   groups?: Array<{
     id: string
@@ -307,6 +308,30 @@ export function MemberSelectableList({
                   )}
                 </div>
               </div>
+
+              {m.title && m.title !== 'UYE' && (
+                <Badge variant="secondary" className="text-xs shrink-0">
+                  {m.title === 'BASKAN'
+                    ? 'Yönetim Kurulu Başkanı'
+                    : m.title === 'BASKAN_YARDIMCISI'
+                      ? 'Yönetim Kurulu Başkan Yardımcısı'
+                      : m.title === 'SEKRETER'
+                        ? 'Sekreter'
+                        : m.title === 'SAYMAN'
+                          ? 'Sayman'
+                          : m.title === 'YONETIM_KURULU_ASIL'
+                            ? 'Yönetim Kurulu Üyesi (Asil)'
+                            : m.title === 'DENETIM_KURULU_BASKANI'
+                              ? 'Denetim Kurulu Başkanı'
+                              : m.title === 'DENETIM_KURULU_ASIL'
+                                ? 'Denetim Kurulu Üyesi (Asil)'
+                                : m.title === 'YONETIM_KURULU_YEDEK'
+                                  ? 'Yönetim Kurulu Üyesi (Yedek)'
+                                  : m.title === 'DENETIM_KURULU_YEDEK'
+                                    ? 'Denetim Kurulu Üyesi (Yedek)'
+                                    : m.title}
+                </Badge>
+              )}
 
               <Badge
                 variant={

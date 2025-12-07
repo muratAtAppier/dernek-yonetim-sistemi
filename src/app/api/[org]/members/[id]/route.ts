@@ -4,6 +4,8 @@ import { prisma } from '../../../../../lib/prisma'
 import { getSession } from '../../../../../lib/auth'
 import { ensureOrgAccessBySlug, WRITE_ROLES } from '../../../../../lib/authz'
 import { normalizePhoneNumber } from '../../../../../lib/utils'
+import { checkRoleUniqueness } from '../../../../../lib/boardValidation'
+import { syncMemberTitleToBoard } from '../../../../../lib/boardSync'
 
 const UpdateMember = z.object({
   firstName: z.string().min(1).optional(),
@@ -147,27 +149,81 @@ export async function PATCH(
   try {
     const json = await req.json()
     const data = UpdateMember.parse(json)
-    const updated = await prisma.member.update({
-      where: { id },
-      data: {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email === '' ? null : data.email,
-        phone: normalizePhoneNumber(data.phone === '' ? null : data.phone),
-        status: data.status,
-        ...((data as any).title !== undefined
-          ? { title: (data as any).title }
-          : {}),
-        nationalId: data.nationalId === '' ? null : (data.nationalId as any),
-        address: data.address === '' ? null : (data.address as any),
-        occupation: data.occupation === '' ? null : (data.occupation as any),
-        joinedAt: data.joinedAt,
-        ...((data as any).registeredAt !== undefined
-          ? { registeredAt: (data as any).registeredAt }
-          : {}),
-      } as any,
-      select: { id: true },
+
+    // Get the current member to check old title
+    const currentMember = await prisma.member.findFirst({
+      where: { id, organizationId: access.org.id },
+      select: { id: true, title: true },
     })
+
+    if (!currentMember) {
+      return NextResponse.json({ error: 'Üye bulunamadı' }, { status: 404 })
+    }
+
+    const oldTitle = currentMember.title
+    const newTitle = (data as any).title
+
+    // Check role uniqueness if title is being updated
+    if (newTitle !== undefined && newTitle !== oldTitle) {
+      const memberTitle = newTitle
+      if (memberTitle && memberTitle !== 'UYE') {
+        const roleCheck = await checkRoleUniqueness(
+          prisma,
+          access.org.id,
+          memberTitle,
+          id // Exclude current member from check
+        )
+
+        if (!roleCheck.isUnique && roleCheck.conflictingMember) {
+          const titleNames: Record<string, string> = {
+            BASKAN: 'Yönetim Kurulu Başkanı',
+            BASKAN_YARDIMCISI: 'Yönetim Kurulu Başkan Yardımcısı',
+            SEKRETER: 'Sekreter',
+            SAYMAN: 'Sayman',
+            DENETIM_KURULU_BASKANI: 'Denetim Kurulu Başkanı',
+          }
+
+          return NextResponse.json(
+            {
+              error: `Bu statü zaten atanmış: ${titleNames[memberTitle] || memberTitle}`,
+              conflictingMember: `${roleCheck.conflictingMember.firstName} ${roleCheck.conflictingMember.lastName}`,
+            },
+            { status: 409 }
+          )
+        }
+      }
+    }
+
+    // Use transaction to update member and sync with board
+    const updated = await prisma.$transaction(async (tx: any) => {
+      const updatedMember = await tx.member.update({
+        where: { id },
+        data: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email === '' ? null : data.email,
+          phone: normalizePhoneNumber(data.phone === '' ? null : data.phone),
+          status: data.status,
+          ...(newTitle !== undefined ? { title: newTitle } : {}),
+          nationalId: data.nationalId === '' ? null : (data.nationalId as any),
+          address: data.address === '' ? null : (data.address as any),
+          occupation: data.occupation === '' ? null : (data.occupation as any),
+          joinedAt: data.joinedAt,
+          ...((data as any).registeredAt !== undefined
+            ? { registeredAt: (data as any).registeredAt }
+            : {}),
+        } as any,
+        select: { id: true, title: true },
+      })
+
+      // Sync title change to board membership if title was updated
+      if (newTitle !== undefined && newTitle !== oldTitle) {
+        await syncMemberTitleToBoard(tx, id, access.org.id, newTitle, oldTitle)
+      }
+
+      return updatedMember
+    })
+
     return NextResponse.json({ item: updated })
   } catch (e: any) {
     if (e?.issues)

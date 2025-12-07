@@ -5,6 +5,8 @@ import { getSession } from '../../../../lib/auth'
 import { ensureOrgAccessBySlug, WRITE_ROLES } from '../../../../lib/authz'
 import { Prisma } from '@prisma/client'
 import { normalizePhoneNumber } from '../../../../lib/utils'
+import { checkRoleUniqueness } from '../../../../lib/boardValidation'
+import { syncMemberTitleToBoard } from '../../../../lib/boardSync'
 
 const CreateMember = z.object({
   firstName: z.string().min(1, 'Ad zorunludur'),
@@ -296,34 +298,79 @@ export async function POST(
   try {
     const json = await req.json()
     const data = CreateMember.parse(json)
-    const created = await prisma.member.create({
-      data: {
-        organizationId: access.org.id,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email && data.email.length > 0 ? data.email : undefined,
-        phone: normalizePhoneNumber(
-          data.phone && data.phone.length > 0 ? data.phone : undefined
-        ),
-        status: data.status ?? 'ACTIVE',
-        ...((data as any).title ? { title: (data as any).title } : {}),
-        nationalId:
-          data.nationalId && data.nationalId.length > 0
-            ? data.nationalId
-            : undefined,
-        address:
-          data.address && data.address.length > 0 ? data.address : undefined,
-        occupation:
-          data.occupation && data.occupation.length > 0
-            ? data.occupation
-            : undefined,
-        joinedAt: data.joinedAt ?? undefined,
-        ...((data as any).registeredAt
-          ? { registeredAt: (data as any).registeredAt }
-          : {}),
-      } as any,
-      select: { id: true },
+
+    // Check role uniqueness if a specific title is assigned
+    const memberTitle = (data as any).title
+    if (memberTitle && memberTitle !== 'UYE') {
+      const roleCheck = await checkRoleUniqueness(
+        prisma,
+        access.org.id,
+        memberTitle
+      )
+
+      if (!roleCheck.isUnique && roleCheck.conflictingMember) {
+        const titleNames: Record<string, string> = {
+          BASKAN: 'Yönetim Kurulu Başkanı',
+          BASKAN_YARDIMCISI: 'Yönetim Kurulu Başkan Yardımcısı',
+          SEKRETER: 'Sekreter',
+          SAYMAN: 'Sayman',
+          DENETIM_KURULU_BASKANI: 'Denetim Kurulu Başkanı',
+        }
+
+        return NextResponse.json(
+          {
+            error: `Bu statü zaten atanmış: ${titleNames[memberTitle] || memberTitle}`,
+            conflictingMember: `${roleCheck.conflictingMember.firstName} ${roleCheck.conflictingMember.lastName}`,
+          },
+          { status: 409 }
+        )
+      }
+    }
+
+    const created = await prisma.$transaction(async (tx: any) => {
+      const newMember = await tx.member.create({
+        data: {
+          organizationId: access.org.id,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email && data.email.length > 0 ? data.email : undefined,
+          phone: normalizePhoneNumber(
+            data.phone && data.phone.length > 0 ? data.phone : undefined
+          ),
+          status: data.status ?? 'ACTIVE',
+          title: memberTitle || 'UYE',
+          nationalId:
+            data.nationalId && data.nationalId.length > 0
+              ? data.nationalId
+              : undefined,
+          address:
+            data.address && data.address.length > 0 ? data.address : undefined,
+          occupation:
+            data.occupation && data.occupation.length > 0
+              ? data.occupation
+              : undefined,
+          joinedAt: data.joinedAt ?? undefined,
+          ...((data as any).registeredAt
+            ? { registeredAt: (data as any).registeredAt }
+            : {}),
+        } as any,
+        select: { id: true },
+      })
+
+      // Sync title to board membership if a board title was assigned
+      if (memberTitle && memberTitle !== 'UYE') {
+        await syncMemberTitleToBoard(
+          tx,
+          newMember.id,
+          access.org.id,
+          memberTitle,
+          null
+        )
+      }
+
+      return newMember
     })
+
     return NextResponse.json({ item: created }, { status: 201 })
   } catch (e: any) {
     if (e?.issues)

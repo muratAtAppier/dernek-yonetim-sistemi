@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -18,7 +19,6 @@ const schema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   website: z.string().url('Geçerli URL girin').optional(),
-  logoUrl: z.string().url('Geçerli URL girin').optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -26,6 +26,8 @@ type FormValues = z.infer<typeof schema>
 export default function NewOrganizationForm() {
   const router = useRouter()
   const toast = useToast()
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const {
     register,
     handleSubmit,
@@ -34,14 +36,40 @@ export default function NewOrganizationForm() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setLogoFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    } else {
+      setLogoFile(null)
+      setLogoPreview(null)
+    }
+  }
+
   return (
     <form
       className="mt-6 space-y-6"
       onSubmit={handleSubmit(async (values) => {
+        const formData = new FormData()
+        formData.append('name', values.name)
+        formData.append('responsibleFirstName', values.responsibleFirstName)
+        formData.append('responsibleLastName', values.responsibleLastName)
+        if (values.description)
+          formData.append('description', values.description)
+        if (values.email) formData.append('email', values.email)
+        if (values.phone) formData.append('phone', values.phone)
+        if (values.address) formData.append('address', values.address)
+        if (values.website) formData.append('website', values.website)
+        if (logoFile) formData.append('logo', logoFile)
+
         const res = await fetch('/api/org', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values),
+          body: formData,
         })
         if (res.ok) {
           const json = await res.json().catch(() => null)
@@ -175,13 +203,45 @@ export default function NewOrganizationForm() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-1">
-          <label className="block text-sm font-medium">Logo URL</label>
-          <Input
-            className="mt-1"
-            {...register('logoUrl')}
-            placeholder="https://.../logo.png"
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-medium">Logo</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleLogoChange}
+            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
           />
+          {logoPreview && (
+            <div className="mt-3 relative inline-block group">
+              <img
+                src={logoPreview}
+                alt="Logo önizleme"
+                className="h-20 w-20 object-contain rounded border"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setLogoFile(null)
+                  setLogoPreview(null)
+                }}
+                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-md"
+                aria-label="Logoyu kaldır"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

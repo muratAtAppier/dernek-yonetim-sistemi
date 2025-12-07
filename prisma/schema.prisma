@@ -216,13 +216,14 @@ model BoardTerm {
 }
 
 model BoardMember {
-  memberId  String
-  termId    String
-  role      BoardMemberRole @default(MEMBER)
-  order     Int?
-  createdAt DateTime        @default(now())
-  member    Member          @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  term      BoardTerm       @relation(fields: [termId], references: [id], onDelete: Cascade)
+  memberId    String
+  termId      String
+  role        BoardMemberRole     @default(MEMBER)
+  memberType  BoardMemberType     @default(ASIL)
+  order       Int?
+  createdAt   DateTime            @default(now())
+  member      Member              @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  term        BoardTerm           @relation(fields: [termId], references: [id], onDelete: Cascade)
 
   @@id([memberId, termId])
 }
@@ -512,6 +513,11 @@ enum BoardMemberRole {
   TREASURER
   MEMBER
   SUPERVISOR
+}
+
+enum BoardMemberType {
+  ASIL
+  YEDEK
 }
 
 enum MeetingType {

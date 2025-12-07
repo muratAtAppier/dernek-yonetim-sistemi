@@ -148,6 +148,7 @@ export default async function MembersPage({
           phone: true,
           nationalId: true,
           status: true,
+          title: true,
         },
       })
       const hasMore = items.length === take

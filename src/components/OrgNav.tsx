@@ -7,7 +7,6 @@ export function OrgNav({ org }: { org: string }) {
   const pathname = usePathname()
   const links = [
     { href: `/${org}/members`, label: 'Üyeler' },
-    { href: `/${org}/groups`, label: 'Gruplar' },
     { href: `/${org}/meetings`, label: 'Toplantılar' },
     { href: `/${org}/boards`, label: 'Kurullar' },
     { href: `/${org}/templates`, label: 'Şablonlar' },
