@@ -38,19 +38,6 @@ export default async function OrgHomePage({
       select: { firstName: true },
     })
 
-    // Get statistics for the dashboard
-    const [memberCount, meetingCount, boardCount, templateCount, financeData] =
-      await Promise.all([
-        prisma.member.count({ where: { organizationId: access.org.id } }),
-        prisma.meeting.count({ where: { organizationId: access.org.id } }),
-        prisma.board.count({ where: { organizationId: access.org.id } }),
-        prisma.template.count({ where: { organizationId: access.org.id } }),
-        prisma.financeTransaction.aggregate({
-          where: { organizationId: access.org.id },
-          _sum: { amount: true },
-        }),
-      ])
-
     const modules = [
       {
         href: `/${org}/members`,
@@ -72,8 +59,6 @@ export default async function OrgHomePage({
             />
           </svg>
         ),
-        stat: memberCount,
-        statLabel: 'kayıtlı üye',
         color: 'from-blue-500/10 to-blue-500/5',
         iconColor: 'text-blue-500',
       },
@@ -97,8 +82,6 @@ export default async function OrgHomePage({
             />
           </svg>
         ),
-        stat: meetingCount,
-        statLabel: 'toplantı',
         color: 'from-green-500/10 to-green-500/5',
         iconColor: 'text-green-500',
       },
@@ -122,14 +105,12 @@ export default async function OrgHomePage({
             />
           </svg>
         ),
-        stat: boardCount,
-        statLabel: 'kurul',
         color: 'from-orange-500/10 to-orange-500/5',
         iconColor: 'text-orange-500',
       },
       {
         href: `/${org}/templates`,
-        title: 'Şablonlar',
+        title: 'Dökümanlar',
         description: 'Belge şablonları yönetimi',
         icon: (
           <svg
@@ -147,8 +128,6 @@ export default async function OrgHomePage({
             />
           </svg>
         ),
-        stat: templateCount,
-        statLabel: 'şablon',
         color: 'from-pink-500/10 to-pink-500/5',
         iconColor: 'text-pink-500',
       },
@@ -172,74 +151,97 @@ export default async function OrgHomePage({
             />
           </svg>
         ),
-        stat: financeData._sum.amount
-          ? `₺${(Number(financeData._sum.amount) / 100).toLocaleString('tr-TR')}`
-          : '₺0',
-        statLabel: 'toplam işlem',
         color: 'from-emerald-500/10 to-emerald-500/5',
         iconColor: 'text-emerald-500',
+      },
+      {
+        href: `/${org}/sms`,
+        title: 'SMS Geçmişi',
+        description: 'SMS gönderim geçmişi ve raporlar',
+        icon: (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-8 w-8"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+            />
+          </svg>
+        ),
+        color: 'from-purple-500/10 to-purple-500/5',
+        iconColor: 'text-purple-500',
       },
     ]
 
     return (
-      <div>
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-2">
+      <div className="space-y-8">
+        {/* Welcome Section */}
+        <div className="bg-gradient-to-br from-primary/5 via-primary/3 to-transparent rounded-xl p-8 border">
+          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             {user?.firstName ? `Merhaba ${user.firstName},` : 'Merhaba,'}
-          </h2>
-          <p className="text-muted-foreground">
+          </h1>
+          <p className="text-muted-foreground text-lg">
             {access.org.name} yönetim paneline hoş geldiniz
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-6">
-          {modules.map((module) => (
-            <Link key={module.href} href={module.href}>
-              <Card className="group hover:shadow-lg transition-all hover:scale-[1.02] cursor-pointer min-h-[160px] flex items-center">
-                <CardContent className="px-6 py-6 w-full">
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`p-3 rounded-lg bg-gradient-to-br ${module.color} flex-shrink-0`}
-                    >
-                      <div className={module.iconColor}>{module.icon}</div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-lg mb-1 group-hover:text-primary transition-colors">
-                        {module.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {module.description}
-                      </p>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold">
-                          {module.stat}
+        {/* Modules Grid */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4 text-foreground/90">
+            Modüller
+          </h2>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {modules.map((module) => (
+              <Link key={module.href} href={module.href}>
+                <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer border-2 hover:border-primary/20 h-full">
+                  <CardContent className="p-6 pt-8 flex items-center">
+                    <div className="flex flex-col w-full">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div
+                          className={`p-4 rounded-xl bg-gradient-to-br ${module.color} flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}
+                        >
+                          <div className={module.iconColor}>{module.icon}</div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-xl mb-2 group-hover:text-primary transition-colors">
+                            {module.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {module.description}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-sm font-medium mr-2">
+                          Görüntüle
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          {module.statLabel}
-                        </span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5 group-hover:translate-x-1 transition-transform"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 7l5 5m0 0l-5 5m5-5H6"
+                          />
+                        </svg>
                       </div>
                     </div>
-                    <div className="flex items-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     )

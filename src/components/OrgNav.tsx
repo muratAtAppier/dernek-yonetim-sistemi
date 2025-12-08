@@ -9,7 +9,7 @@ export function OrgNav({ org }: { org: string }) {
     { href: `/${org}/members`, label: 'Üyeler' },
     { href: `/${org}/meetings`, label: 'Toplantılar' },
     { href: `/${org}/boards`, label: 'Kurullar' },
-    { href: `/${org}/templates`, label: 'Şablonlar' },
+    { href: `/${org}/templates`, label: 'Dökümanlar' },
     { href: `/${org}/finance`, label: 'Finans' },
     { href: `/${org}/sms`, label: 'SMS Geçmişi' },
   ]

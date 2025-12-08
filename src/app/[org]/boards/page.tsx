@@ -127,9 +127,6 @@ export default async function BoardsPage(props: any) {
 
   return (
     <main>
-      <Breadcrumbs
-        items={[{ label: 'Kurullar', href: `/${params.org}/boards` }]}
-      />
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold leading-none tracking-tight">
           Kurullar

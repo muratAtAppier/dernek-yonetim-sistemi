@@ -63,6 +63,10 @@ export function MemberSelectableList({
     initialTemplateSlug || ''
   )
   const [tplFormat, setTplFormat] = React.useState<'pdf' | 'docx'>('pdf')
+  const [loadingCertificate, setLoadingCertificate] = React.useState<
+    string | null
+  >(null)
+
   React.useEffect(() => {
     async function loadTpl() {
       try {
@@ -152,6 +156,44 @@ export function MemberSelectableList({
       add({ variant: 'success', title: 'Hazirun PDF indirildi' })
     } finally {
       setLoadingPdfSelected(false)
+    }
+  }
+
+  async function handleGenerateMembershipCertificate(memberId: string) {
+    setLoadingCertificate(memberId)
+    try {
+      const res = await fetch(
+        `/api/${org}/documents/uyelik-belgesi/${memberId}`,
+        {
+          method: 'GET',
+        }
+      )
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        return add({
+          variant: 'error',
+          title: 'Belge oluşturulamadı',
+          description: data?.error ?? 'Bir hata oluştu',
+        })
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `uyelik-belgesi-${memberId}-${new Date().toISOString().slice(0, 10)}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      add({ variant: 'success', title: 'Üyelik belgesi indirildi' })
+    } catch (e: any) {
+      add({
+        variant: 'error',
+        title: 'İndirme hatası',
+        description: e.message,
+      })
+    } finally {
+      setLoadingCertificate(null)
     }
   }
 
@@ -390,6 +432,34 @@ export function MemberSelectableList({
                     ? 'Ayrıldı'
                     : 'Pasif'}
               </Badge>
+
+              <Button
+                onClick={() => handleGenerateMembershipCertificate(m.id)}
+                size="sm"
+                variant="ghost"
+                className="shrink-0"
+                title="Üyelik Belgesi Oluştur"
+                disabled={loadingCertificate === m.id}
+              >
+                {loadingCertificate === m.id ? (
+                  <Spinner className="w-4 h-4" />
+                ) : (
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                )}
+                <span className="ml-1.5">Üyelik Belgesi</span>
+              </Button>
 
               {canWrite && (
                 <LinkButton

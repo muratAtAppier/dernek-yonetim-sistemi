@@ -54,7 +54,6 @@ export default async function FinancePage({ params }: any) {
 
   return (
     <main>
-      <Breadcrumbs items={[{ label: 'Finans', href: `/${org}/finance` }]} />
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold leading-none tracking-tight">
           Üyelik Aidat / Finans

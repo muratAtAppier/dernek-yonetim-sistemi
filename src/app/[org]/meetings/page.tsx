@@ -67,9 +67,6 @@ export default async function MeetingsPage({
 
   return (
     <main>
-      <Breadcrumbs
-        items={[{ label: 'Toplantılar', href: `/${params.org}/meetings` }]}
-      />
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold leading-none tracking-tight">
           Toplantılar
