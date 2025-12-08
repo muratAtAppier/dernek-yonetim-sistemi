@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
+import { SMS_TEMPLATES } from '@/lib/sms/templates'
 
 interface Props {
   org: string
@@ -14,9 +15,21 @@ export const SendSmsButton: React.FC<Props> = ({ org, memberId, phone }) => {
   const [open, setOpen] = useState(false)
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
   const { add } = useToast()
 
   const disabled = !phone
+
+  // Handle template selection
+  function handleTemplateChange(templateId: string) {
+    setSelectedTemplate(templateId)
+    if (templateId) {
+      const template = SMS_TEMPLATES.find((t) => t.id === templateId)
+      if (template) {
+        setMessage(template.content)
+      }
+    }
+  }
 
   async function send() {
     if (!message.trim()) return
@@ -66,6 +79,32 @@ export const SendSmsButton: React.FC<Props> = ({ org, memberId, phone }) => {
                   Bu üyeye ait telefon numarası yok.
                 </p>
               )}
+              {/* Template Selector */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  SMS Şablonu (Opsiyonel)
+                </label>
+                <select
+                  className="w-full rounded border px-3 py-2 text-sm bg-background"
+                  value={selectedTemplate}
+                  onChange={(e) => handleTemplateChange(e.target.value)}
+                >
+                  <option value="">-- Şablon Seçin --</option>
+                  {SMS_TEMPLATES.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name}
+                    </option>
+                  ))}
+                </select>
+                {selectedTemplate && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {
+                      SMS_TEMPLATES.find((t) => t.id === selectedTemplate)
+                        ?.description
+                    }
+                  </p>
+                )}
+              </div>
               <textarea
                 className="w-full rounded border px-3 py-2 text-sm"
                 rows={5}

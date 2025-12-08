@@ -10,6 +10,7 @@ import { Badge } from './ui/badge'
 import { Select } from './ui/select'
 import { Spinner } from './ui/spinner'
 import { ListRow } from '@/components/ui/list-row'
+import { BulkSmsModal } from './BulkSmsModal'
 
 type Tag = { id: string; name: string; color?: string | null }
 
@@ -51,6 +52,7 @@ export function MemberSelectableList({
   const [loadingExportSelected, setLoadingExportSelected] =
     React.useState(false)
   const [loadingPdfSelected, setLoadingPdfSelected] = React.useState(false)
+  const [showBulkSmsModal, setShowBulkSmsModal] = React.useState(false)
   const allSelected = selected.length > 0 && selected.length === items.length
   const { add } = useToast()
 
@@ -235,9 +237,48 @@ export function MemberSelectableList({
             >
               Hazirun PDF
             </Button>
+
+            {canWrite && (
+              <>
+                <div className="hidden lg:block h-6 w-px bg-border" />
+                <Button
+                  type="button"
+                  onClick={() => setShowBulkSmsModal(true)}
+                  variant="outline"
+                  size="sm"
+                  disabled={selected.length === 0}
+                  className="h-9"
+                >
+                  <svg
+                    className="w-4 h-4 mr-1.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                    />
+                  </svg>
+                  Toplu SMS
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Bulk SMS Modal */}
+      {showBulkSmsModal && (
+        <BulkSmsModal
+          org={org}
+          memberIds={selected}
+          onClose={() => setShowBulkSmsModal(false)}
+          onSuccess={() => setSelected([])}
+        />
+      )}
 
       {/* Members List */}
       <div className="space-y-2">
