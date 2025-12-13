@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import AddMeetingModal from '@/components/AddMeetingModal'
@@ -19,17 +20,22 @@ export default function MeetingsClient({
   org,
   canWrite,
   initialItems,
+  hasActiveFilters,
 }: {
   org: string
   canWrite: boolean
   initialItems: any[]
+  hasActiveFilters?: boolean
 }) {
+  const router = useRouter()
   const [items, setItems] = useState(initialItems)
   const [showAddModal, setShowAddModal] = useState(false)
 
   async function handleMeetingCreated(newMeeting: any) {
     setItems([newMeeting, ...items])
     setShowAddModal(false)
+    // Refresh the page data to ensure the new meeting persists after refresh
+    router.refresh()
   }
 
   return (
@@ -45,13 +51,19 @@ export default function MeetingsClient({
 
       {items.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">
-          Henüz toplantı eklenmemiş.
-          {canWrite && (
-            <div className="mt-4">
-              <Button onClick={() => setShowAddModal(true)}>
-                İlk Toplantıyı Ekle
-              </Button>
-            </div>
+          {hasActiveFilters ? (
+            'Filtre kriterlerine uygun toplantı bulunamadı.'
+          ) : (
+            <>
+              Henüz toplantı eklenmemiş.
+              {canWrite && (
+                <div className="mt-4">
+                  <Button onClick={() => setShowAddModal(true)}>
+                    İlk Toplantıyı Ekle
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </Card>
       ) : (
@@ -63,7 +75,6 @@ export default function MeetingsClient({
                 <TableHead>Tür</TableHead>
                 <TableHead>Tarih</TableHead>
                 <TableHead>Konum</TableHead>
-                <TableHead>Durum</TableHead>
                 <TableHead className="text-right">İşlemler</TableHead>
               </TableRow>
             </TableHeader>
@@ -77,20 +88,13 @@ export default function MeetingsClient({
                     </span>
                   </TableCell>
                   <TableCell>
-                    {new Date(meeting.scheduledAt).toLocaleString('tr-TR', {
+                    {new Date(meeting.scheduledAt).toLocaleDateString('tr-TR', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
                     })}
                   </TableCell>
                   <TableCell>{meeting.location || '-'}</TableCell>
-                  <TableCell>
-                    <span className="text-xs bg-muted px-2 py-1 rounded">
-                      {getMeetingStatusLabel(meeting.status)}
-                    </span>
-                  </TableCell>
                   <TableCell className="text-right">
                     <Link href={`/${org}/meetings/${meeting.id}`}>
                       <Button variant="ghost" size="sm">

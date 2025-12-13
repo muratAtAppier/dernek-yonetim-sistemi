@@ -3,6 +3,8 @@ import { authOptions } from '@/lib/auth'
 import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import MeetingDetailClient from './MeetingDetailClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function MeetingDetailPage({
   params: paramsPromise,
 }: {
@@ -17,15 +19,30 @@ export default async function MeetingDetailPage({
 
   async function getMeeting() {
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/api/${params.org}/meetings?status=&type=`,
-        { cache: 'no-store' }
+      const { ensureOrgAccessBySlug } = await import('@/lib/authz')
+      const { prisma } = await import('@/lib/prisma')
+
+      if (!session) return null as any
+
+      const access = await ensureOrgAccessBySlug(
+        session.user.id as string,
+        params.org
       )
-      if (!res.ok) return null as any
-      const data = await res.json()
-      const m = (data.items as any[]).find((x) => x.id === params.id)
-      return m ?? null
-    } catch {
+      if (!access.allowed) return null as any
+
+      const meeting = await (prisma as any).meeting.findFirst({
+        where: {
+          id: params.id,
+          organizationId: access.org.id,
+        },
+        include: {
+          documents: true,
+        },
+      })
+
+      return meeting
+    } catch (e) {
+      console.error('Error fetching meeting:', e)
       return null as any
     }
   }
@@ -45,12 +62,12 @@ export default async function MeetingDetailPage({
         <h1 className="text-2xl font-semibold leading-none tracking-tight">
           {meeting.title}
         </h1>
-        <div className="text-sm text-muted-foreground">
-          {new Date(meeting.scheduledAt).toLocaleString()} • {meeting.type} •{' '}
-          {meeting.status}
-        </div>
       </div>
-      <MeetingDetailClient org={params.org} meetingId={params.id} />
+      <MeetingDetailClient
+        org={params.org}
+        meetingId={params.id}
+        initialMeeting={meeting}
+      />
     </main>
   )
 }

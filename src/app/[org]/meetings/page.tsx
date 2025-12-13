@@ -7,6 +7,8 @@ import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import MeetingsClient from './MeetingsClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function MeetingsPage({
   params: paramsPromise,
   searchParams,
@@ -29,6 +31,7 @@ export default async function MeetingsPage({
 
   async function getRole() {
     try {
+      if (!session) return null as any
       const { ensureOrgAccessBySlug } = await import('@/lib/authz')
       const access = await ensureOrgAccessBySlug(
         session.user.id as string,
@@ -43,20 +46,32 @@ export default async function MeetingsPage({
 
   async function getMeetings() {
     try {
+      const { ensureOrgAccessBySlug } = await import('@/lib/authz')
+      const { prisma } = await import('@/lib/prisma')
+
+      if (!session) return [] as any
+
+      const access = await ensureOrgAccessBySlug(
+        session.user.id as string,
+        params.org
+      )
+      if (!access.allowed) return [] as any
+
       const sp = await searchParams
-      const query = new URLSearchParams()
-      if (sp.q) query.set('q', sp.q)
-      if (sp.type) query.set('type', sp.type)
-      if (sp.status) query.set('status', sp.status)
-      if (sp.from) query.set('from', sp.from)
-      if (sp.to) query.set('to', sp.to)
-      const qs = query.toString()
-      const url = `${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/api/${params.org}/meetings${qs ? `?${qs}` : ''}`
-      const res = await fetch(url, { cache: 'no-store' })
-      if (!res.ok) return [] as any
-      const data = await res.json()
-      return data.items as Array<any>
-    } catch {
+      const where: any = { organizationId: access.org.id }
+
+      if (sp.type) where.type = sp.type
+      if (sp.status) where.status = sp.status
+
+      const items = await (prisma as any).meeting.findMany({
+        where,
+        orderBy: [{ scheduledAt: 'desc' }],
+        take: 200,
+      })
+
+      return items as Array<any>
+    } catch (e) {
+      console.error('Error fetching meetings:', e)
       return [] as any
     }
   }
@@ -79,70 +94,34 @@ export default async function MeetingsPage({
           >
             Üyelere Dön
           </LinkButton>
-          {canWrite && (
-            <LinkButton href={`/${params.org}/meetings/new`} size="sm">
-              Yeni Toplantı
-            </LinkButton>
-          )}
         </div>
       </div>
       <form
-        className="mb-4 grid gap-2 sm:grid-cols-5"
+        className="mb-4 flex gap-2"
         role="search"
         aria-label="Toplantı arama/filtre"
       >
-        <Input
-          name="q"
-          defaultValue={sp.q ?? ''}
-          placeholder="Başlık ara"
-          className="sm:col-span-2"
-        />
         <Select name="type" defaultValue={sp.type ?? ''}>
           <option value="">Tüm türler</option>
-          <option value="GENERAL_ASSEMBLY">Genel Kurul</option>
-          <option value="BOARD">Kurul</option>
-          <option value="COMMISSION">Komisyon</option>
-          <option value="OTHER">Diğer</option>
+          <option value="OLAGAN_GENEL_KURUL">
+            Olağan Genel Kurul Toplantısı
+          </option>
+          <option value="OLAGANÜSTÜ_GENEL_KURUL">
+            Olağanüstü Genel Kurul Toplantısı
+          </option>
         </Select>
-        <Select name="status" defaultValue={sp.status ?? ''}>
-          <option value="">Tüm durumlar</option>
-          <option value="PLANNED">Planlandı</option>
-          <option value="COMPLETED">Tamamlandı</option>
-          <option value="CANCELLED">İptal</option>
-        </Select>
-        <div className="flex items-center gap-2">
-          <Input
-            type="date"
-            name="from"
-            defaultValue={sp.from ?? ''}
-            title="Başlangıç"
-            className="w-[150px]"
-          />
-          <Input
-            type="date"
-            name="to"
-            defaultValue={sp.to ?? ''}
-            title="Bitiş"
-            className="w-[150px]"
-          />
-        </div>
-        <div className="flex items-center gap-2 sm:col-span-5">
-          <Button type="submit" variant="outline">
-            Filtrele
-          </Button>
-          <LinkButton
-            href={`/${params.org}/meetings`}
-            size="sm"
-            variant="outline"
-          >
-            Sıfırla
-          </LinkButton>
-        </div>
+        <Button type="submit" variant="outline">
+          Filtrele
+        </Button>
+        <LinkButton href={`/${params.org}/meetings`} variant="outline">
+          Sıfırla
+        </LinkButton>
       </form>
       <MeetingsClient
         org={params.org}
         canWrite={canWrite}
         initialItems={meetings}
+        hasActiveFilters={!!sp.type}
       />
     </main>
   )

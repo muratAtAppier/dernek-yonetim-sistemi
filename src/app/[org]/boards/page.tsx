@@ -19,6 +19,14 @@ export default async function BoardsPage(props: any) {
     if (!session?.user?.id) return null
 
     try {
+      // First check if user is SUPERADMIN (global access)
+      const superMembership = await prisma.organizationMembership.findFirst({
+        where: { userId: session.user.id as string, role: 'SUPERADMIN' },
+        select: { role: true },
+      })
+      if (superMembership) return 'SUPERADMIN'
+
+      // Then check for org-specific membership
       const org = await prisma.organization.findUnique({
         where: { slug: params.org },
         select: { id: true },

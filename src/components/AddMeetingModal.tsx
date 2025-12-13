@@ -48,8 +48,8 @@ export default function AddMeetingModal({
     useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [showIntervalPrompt, setShowIntervalPrompt] = useState(false)
-  const [isFirstOlaganMeeting, setIsFirstOlaganMeeting] = useState(false)
+  const [showIntervalPrompt, setShowIntervalPrompt] = useState(true)
+  const [isFirstOlaganMeeting, setIsFirstOlaganMeeting] = useState(true)
 
   // Check if this is the first OLAGAN_GENEL_KURUL when type changes
   useEffect(() => {
@@ -250,10 +250,10 @@ export default function AddMeetingModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="scheduledAt">Tarih ve Saat *</Label>
+            <Label htmlFor="scheduledAt">Tarih *</Label>
             <Input
               id="scheduledAt"
-              type="datetime-local"
+              type="date"
               value={scheduledAt}
               onChange={(e) => setScheduledAt(e.target.value)}
               required

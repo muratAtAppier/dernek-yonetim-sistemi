@@ -28,6 +28,13 @@ export const MEETING_STATUS_LABELS = {
   CANCELED: 'İptal Edildi',
 } as const
 
+export const MEETING_DOCUMENT_TYPE_LABELS = {
+  DIVAN_TUTANAGI: 'Genel Kurul Divan Tutanağı',
+  HAZIRUN_LISTESI: 'Hazırun Listesi',
+  FAALIYET_RAPORU: 'Faaliyet Raporu',
+  DENETIM_KURULU_RAPORU: 'Denetim Kurulu Raporu',
+} as const
+
 export const DEFAULT_INTERVAL_YEARS = 3
 export const ALLOWED_INTERVAL_YEARS = [2, 3] as const
 
@@ -78,6 +85,17 @@ export function getMeetingStatusLabel(status: string): string {
   return (
     MEETING_STATUS_LABELS[status as keyof typeof MEETING_STATUS_LABELS] ||
     status
+  )
+}
+
+/**
+ * Get the label for a meeting document type
+ */
+export function getMeetingDocumentTypeLabel(type: string): string {
+  return (
+    MEETING_DOCUMENT_TYPE_LABELS[
+      type as keyof typeof MEETING_DOCUMENT_TYPE_LABELS
+    ] || type
   )
 }
 

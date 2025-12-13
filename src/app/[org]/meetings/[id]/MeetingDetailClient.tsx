@@ -9,13 +9,19 @@ import { Select } from '@/components/ui/select'
 import { ListRow } from '@/components/ui/list-row'
 import { Spinner } from '@/components/ui/spinner'
 import { useToast } from '@/components/ui/toast'
+import {
+  getMeetingTypeLabel,
+  getMeetingDocumentTypeLabel,
+} from '@/lib/meetings'
 
 export default function MeetingDetailClient({
   org,
   meetingId,
+  initialMeeting,
 }: {
   org: string
   meetingId: string
+  initialMeeting?: any
 }) {
   const searchParams = useSearchParams()
   const pathname = usePathname()
@@ -42,10 +48,27 @@ export default function MeetingDetailClient({
     'overview' | 'agendas' | 'invites' | 'attendance' | 'minutes' | 'documents'
   >(initialTab)
   const [loading, setLoading] = useState(false)
-  const [meeting, setMeeting] = useState<any | null>(null)
-  const [documents, setDocuments] = useState<any[]>([])
+  const [meeting, setMeeting] = useState<any | null>(initialMeeting || null)
+  const [documents, setDocuments] = useState<any[]>(
+    initialMeeting?.documents || []
+  )
   const [uploading, setUploading] = useState(false)
+  const [selectedDocumentType, setSelectedDocumentType] = useState<string>('')
   const { add } = useToast()
+
+  const REQUIRED_DOCUMENT_TYPES = [
+    'DIVAN_TUTANAGI',
+    'HAZIRUN_LISTESI',
+    'FAALIYET_RAPORU',
+    'DENETIM_KURULU_RAPORU',
+  ]
+
+  // Calculate which document types are already uploaded
+  const uploadedTypes = documents.map((doc) => doc.documentType).filter(Boolean)
+  const missingTypes = REQUIRED_DOCUMENT_TYPES.filter(
+    (type) => !uploadedTypes.includes(type)
+  )
+  const allDocumentsUploaded = missingTypes.length === 0
 
   async function loadMeeting() {
     setLoading(true)
@@ -56,13 +79,16 @@ export default function MeetingDetailClient({
       )
       const data = res.ok ? await res.json() : null
       setMeeting(data?.item || null)
+      setDocuments(data?.item?.documents || [])
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadMeeting()
+    if (!initialMeeting) {
+      loadMeeting()
+    }
   }, [org, meetingId])
 
   // Agendas
@@ -219,9 +245,15 @@ export default function MeetingDetailClient({
     const file = e.target.files?.[0]
     if (!file) return
 
+    if (!selectedDocumentType) {
+      add({ variant: 'error', title: 'Lütfen belge türü seçin' })
+      return
+    }
+
     setUploading(true)
     const formData = new FormData()
     formData.append('file', file)
+    formData.append('documentType', selectedDocumentType)
 
     const res = await fetch(`/api/${org}/meetings/${meetingId}/documents`, {
       method: 'POST',
@@ -238,6 +270,7 @@ export default function MeetingDetailClient({
     add({ variant: 'success', title: 'Dosya yüklendi' })
     await loadDocuments()
     setUploading(false)
+    setSelectedDocumentType('')
     e.target.value = '' // Reset file input
   }
   async function deleteDocument(docId: string) {
@@ -314,19 +347,17 @@ export default function MeetingDetailClient({
                 <span className="text-muted-foreground min-w-[100px]">
                   Tür:
                 </span>
-                <span>{meeting.type}</span>
+                <span>{getMeetingTypeLabel(meeting.type)}</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-muted-foreground min-w-[100px]">
-                  Tarih & Saat:
+                  Tarih:
                 </span>
                 <span>
-                  {new Date(meeting.scheduledAt).toLocaleString('tr-TR', {
+                  {new Date(meeting.scheduledAt).toLocaleDateString('tr-TR', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
                   })}
                 </span>
               </div>
@@ -338,12 +369,6 @@ export default function MeetingDetailClient({
                   <span>{meeting.location}</span>
                 </div>
               )}
-              <div className="flex items-start gap-2">
-                <span className="text-muted-foreground min-w-[100px]">
-                  Durum:
-                </span>
-                <span>{meeting.status}</span>
-              </div>
               {meeting.intervalYears && (
                 <div className="flex items-start gap-2">
                   <span className="text-muted-foreground min-w-[100px]">
@@ -554,26 +579,59 @@ export default function MeetingDetailClient({
       </TabPanel>
 
       <TabPanel active={active === 'documents'}>
-        <div className="mb-4 flex items-center gap-2">
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx,.xls,.xlsx"
-            onChange={uploadDocument}
-            disabled={uploading}
-            className="flex-1"
-          />
-          {uploading && (
-            <span className="text-sm text-muted-foreground">Yükleniyor...</span>
-          )}
-        </div>
-        <div className="text-xs text-muted-foreground mb-2">
-          Kabul edilen dosya türleri: PDF, Word (.doc, .docx), Excel (.xls,
-          .xlsx)
-        </div>
+        {!allDocumentsUploaded && (
+          <>
+            <div className="mb-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Select
+                  value={selectedDocumentType}
+                  onChange={(e) => setSelectedDocumentType(e.target.value)}
+                  className="flex-1"
+                  disabled={uploading}
+                >
+                  <option value="">Belge türü seçin</option>
+                  {missingTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {getMeetingDocumentTypeLabel(type)}
+                    </option>
+                  ))}
+                </Select>
+                <Input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx"
+                  onChange={uploadDocument}
+                  disabled={uploading || !selectedDocumentType}
+                  className="flex-1"
+                />
+              </div>
+              {uploading && (
+                <span className="text-sm text-muted-foreground">
+                  Yüklüyor...
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground mb-2">
+              Kabul edilen dosya türleri: PDF, Word (.doc, .docx), Excel (.xls,
+              .xlsx)
+            </div>
+          </>
+        )}
+        {allDocumentsUploaded && (
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-sm text-green-800 dark:text-green-200">
+            Tüm gerekli belgeler yüklenmiştir.
+          </div>
+        )}
         <ul className="divide-y rounded border">
           {documents.map((doc) => (
             <li key={doc.id} className="p-3 flex items-center justify-between">
               <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  {doc.documentType && (
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                      {getMeetingDocumentTypeLabel(doc.documentType)}
+                    </span>
+                  )}
+                </div>
                 <div className="font-medium text-sm">{doc.fileName}</div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {(doc.fileSize / 1024).toFixed(2)} KB • Yüklenme:{' '}
