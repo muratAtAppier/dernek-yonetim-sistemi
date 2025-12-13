@@ -11,11 +11,26 @@ const CreateOrg = z.object({
   name: z.string().min(3),
   responsibleFirstName: z.string().min(2),
   responsibleLastName: z.string().min(2),
-  description: z.string().optional(),
-  address: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email().optional(),
-  website: z.string().url().optional(),
+  description: z.preprocess(
+    (val) => (!val || val === '' ? undefined : val),
+    z.string().optional()
+  ),
+  address: z.preprocess(
+    (val) => (!val || val === '' ? undefined : val),
+    z.string().optional()
+  ),
+  phone: z.preprocess(
+    (val) => (!val || val === '' ? undefined : val),
+    z.string().optional()
+  ),
+  email: z.preprocess(
+    (val) => (!val || val === '' ? undefined : val),
+    z.string().email().optional()
+  ),
+  website: z.preprocess(
+    (val) => (!val || val === '' ? undefined : val),
+    z.string().url().optional()
+  ),
 })
 
 export async function GET() {

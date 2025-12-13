@@ -14,11 +14,26 @@ const schema = z.object({
   name: z.string().min(3, 'En az 3 karakter'),
   responsibleFirstName: z.string().min(2, 'En az 2 karakter'),
   responsibleLastName: z.string().min(2, 'En az 2 karakter'),
-  description: z.string().optional(),
-  email: z.string().email('Geçerli e‑posta girin').optional(),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  website: z.string().url('Geçerli URL girin').optional(),
+  description: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.string().optional()
+  ),
+  email: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.string().email('Geçerli e‑posta girin').optional()
+  ),
+  phone: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.string().optional()
+  ),
+  address: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.string().optional()
+  ),
+  website: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.string().url('Geçerli URL girin').optional()
+  ),
 })
 
 type FormValues = z.infer<typeof schema>
