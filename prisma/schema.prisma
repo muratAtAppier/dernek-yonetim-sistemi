@@ -67,19 +67,20 @@ model Member {
 }
 
 model User {
-  id            String                   @id @default(cuid())
-  name          String?
-  firstName     String?
-  lastName      String?
-  email         String?                  @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?
-  createdAt     DateTime                 @default(now())
-  updatedAt     DateTime                 @updatedAt
-  accounts      Account[]
-  memberships   OrganizationMembership[]
-  sessions      Session[]
+  id                 String                   @id @default(cuid())
+  name               String?
+  firstName          String?
+  lastName           String?
+  email              String?                  @unique
+  emailVerified      DateTime?
+  image              String?
+  passwordHash       String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  accounts           Account[]
+  memberships        OrganizationMembership[]
+  sessions           Session[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Account {
@@ -114,6 +115,15 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expires   DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model OrganizationMembership {

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import bcrypt from 'bcrypt'
 import { prisma } from '../../../lib/prisma'
 import { getSession } from '../../../lib/auth'
 import { isSuperAdmin } from '../../../lib/authz'
@@ -26,6 +27,10 @@ const CreateOrg = z.object({
   email: z.preprocess(
     (val) => (!val || val === '' ? undefined : val),
     z.string().email().optional()
+  ),
+  password: z.preprocess(
+    (val) => (!val || val === '' ? undefined : val),
+    z.string().min(6).optional()
   ),
   website: z.preprocess(
     (val) => (!val || val === '' ? undefined : val),
@@ -80,6 +85,7 @@ export async function POST(req: Request) {
       address: form.get('address') as string | undefined,
       phone: form.get('phone') as string | undefined,
       email: form.get('email') as string | undefined,
+      password: form.get('password') as string | undefined,
       website: form.get('website') as string | undefined,
     }
 
@@ -155,6 +161,58 @@ export async function POST(req: Request) {
         name: `${data.responsibleFirstName} ${data.responsibleLastName}`,
       },
     })
+
+    // If email and password provided, create new admin user for the organization
+    if (data.email && data.password) {
+      const passwordHash = await bcrypt.hash(data.password, 10)
+
+      // Check if user with this email already exists
+      let adminUser = await prisma.user.findUnique({
+        where: { email: data.email },
+      })
+
+      if (!adminUser) {
+        // Create new user
+        adminUser = await prisma.user.create({
+          data: {
+            email: data.email,
+            firstName: data.responsibleFirstName,
+            lastName: data.responsibleLastName,
+            name: `${data.responsibleFirstName} ${data.responsibleLastName}`,
+            passwordHash: passwordHash,
+          },
+        })
+      } else {
+        // Update existing user's password and name
+        adminUser = await prisma.user.update({
+          where: { email: data.email },
+          data: {
+            firstName: data.responsibleFirstName,
+            lastName: data.responsibleLastName,
+            name: `${data.responsibleFirstName} ${data.responsibleLastName}`,
+            passwordHash: passwordHash,
+          },
+        })
+      }
+
+      // Create admin membership for the new organization
+      await prisma.organizationMembership.upsert({
+        where: {
+          userId_organizationId: {
+            userId: adminUser.id,
+            organizationId: created.id,
+          },
+        },
+        update: {
+          role: 'ADMIN',
+        },
+        create: {
+          userId: adminUser.id,
+          organizationId: created.id,
+          role: 'ADMIN',
+        },
+      })
+    }
 
     return NextResponse.json({ item: created }, { status: 201 })
   } catch (e: any) {

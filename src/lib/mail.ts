@@ -26,12 +26,25 @@ export async function sendMail(opts: {
   from?: string
 }) {
   const from = opts.from || process.env.MAIL_FROM || 'noreply@example.test'
-  const tx = getTransport()
-  return tx.sendMail({
-    from,
-    to: opts.to,
-    subject: opts.subject,
-    text: opts.text,
-    html: opts.html,
-  })
+
+  if (!user || !pass) {
+    console.warn('SMTP credentials not configured, email not sent')
+    return { message: 'Email service not configured' }
+  }
+
+  try {
+    const tx = getTransport()
+    const result = await tx.sendMail({
+      from,
+      to: opts.to,
+      subject: opts.subject,
+      text: opts.text,
+      html: opts.html,
+    })
+    console.log('Email sent successfully:', result.messageId)
+    return result
+  } catch (error) {
+    console.error('Email sending failed:', error)
+    throw error
+  }
 }

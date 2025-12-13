@@ -14,26 +14,16 @@ const schema = z.object({
   name: z.string().min(3, 'En az 3 karakter'),
   responsibleFirstName: z.string().min(2, 'En az 2 karakter'),
   responsibleLastName: z.string().min(2, 'En az 2 karakter'),
-  description: z.preprocess(
-    (val) => (val === '' ? undefined : val),
-    z.string().optional()
-  ),
-  email: z.preprocess(
-    (val) => (val === '' ? undefined : val),
-    z.string().email('Geçerli e‑posta girin').optional()
-  ),
-  phone: z.preprocess(
-    (val) => (val === '' ? undefined : val),
-    z.string().optional()
-  ),
-  address: z.preprocess(
-    (val) => (val === '' ? undefined : val),
-    z.string().optional()
-  ),
-  website: z.preprocess(
-    (val) => (val === '' ? undefined : val),
-    z.string().url('Geçerli URL girin').optional()
-  ),
+  description: z.string().optional(),
+  email: z.string().email('Geçerli e‑posta girin').optional().or(z.literal('')),
+  password: z
+    .string()
+    .min(6, 'Şifre en az 6 karakter olmalıdır')
+    .optional()
+    .or(z.literal('')),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  website: z.string().url('Geçerli URL girin').optional().or(z.literal('')),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -77,6 +67,7 @@ export default function NewOrganizationForm() {
         if (values.description)
           formData.append('description', values.description)
         if (values.email) formData.append('email', values.email)
+        if (values.password) formData.append('password', values.password)
         if (values.phone) formData.append('phone', values.phone)
         if (values.address) formData.append('address', values.address)
         if (values.website) formData.append('website', values.website)
@@ -184,6 +175,22 @@ export default function NewOrganizationForm() {
           )}
         </div>
         <div className="sm:col-span-1">
+          <label className="block text-sm font-medium">Şifre</label>
+          <Input
+            className="mt-1"
+            {...register('password')}
+            placeholder="En az 6 karakter"
+          />
+          {errors.password && (
+            <p className="mt-1 text-sm text-red-600">
+              {errors.password.message as string}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="sm:col-span-1">
           <label className="block text-sm font-medium">Telefon</label>
           <Input
             className="mt-1"
@@ -191,6 +198,7 @@ export default function NewOrganizationForm() {
             placeholder="(5xx) xxx xx xx"
           />
         </div>
+        <div className="sm:col-span-1"></div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
