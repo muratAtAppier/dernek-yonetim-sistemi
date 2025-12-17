@@ -21,7 +21,7 @@
     "test": "vitest run",
     "db:verify": "node scripts/db-verify.js",
     "prisma:deploy": "prisma migrate deploy",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate && playwright install chromium"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -36,6 +36,7 @@
     "docx": "^9.2.3",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "latest",
     "mustache": "^4.2.0",
     "next": "15.1.9",
@@ -65,7 +66,7 @@
     "eslint-plugin-simple-import-sort": "latest",
     "husky": "^9.0.0",
     "lint-staged": "^15.2.8",
-    "playwright": "^1.47.2",
+    "playwright": "^1.57.0",
     "postcss": "^8.4.41",
     "prettier": "latest",
     "prisma": "latest",

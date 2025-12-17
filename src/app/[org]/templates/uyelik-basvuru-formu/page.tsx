@@ -88,10 +88,6 @@ export default async function UyelikBasvuruFormuPage({
           <h1 className="text-2xl font-semibold leading-none tracking-tight mb-1">
             Üyelik Başvuru Formu
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Yeni üyelerin dolduracağı başvuru formu - Bilgileri girerek PDF
-            olarak indirebilirsiniz
-          </p>
         </div>
       </div>
 

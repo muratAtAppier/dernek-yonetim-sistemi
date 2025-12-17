@@ -18,9 +18,6 @@ export default function SignInPage() {
   return (
     <main className="mx-auto max-w-sm py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Giriş Yap</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Süper yönetici olarak giriş yapın ve dernek oluşturun.
-      </p>
       <div className="mt-6 space-y-3 rounded-lg border bg-card p-4">
         <div>
           <label className="block text-sm font-medium">E‑posta</label>

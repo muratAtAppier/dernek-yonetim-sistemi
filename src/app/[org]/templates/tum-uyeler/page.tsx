@@ -50,7 +50,7 @@ export default function TumUyelerPage() {
       })
     } catch (error: any) {
       add({
-        variant: 'destructive',
+        variant: 'error',
         title: 'Hata',
         description: error.message || 'İndirme sırasında bir hata oluştu',
       })

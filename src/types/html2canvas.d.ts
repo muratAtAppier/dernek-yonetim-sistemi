@@ -4,6 +4,7 @@ declare module 'html2canvas' {
     backgroundColor?: string
     logging?: boolean
     useCORS?: boolean
+    allowTaint?: boolean
   }
 
   function html2canvas(

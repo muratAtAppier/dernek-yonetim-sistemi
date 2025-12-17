@@ -12,8 +12,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Download } from 'lucide-react'
-import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
+import { downloadServerPdf } from '@/lib/serverPdf'
 
 interface FormEditorProps {
   orgName: string
@@ -61,48 +61,11 @@ export default function FormEditor({
     if (!previewRef.current) return
 
     try {
-      // Create high quality canvas from the preview element
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 3, // Higher scale for better quality
-        backgroundColor: '#ffffff',
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
-      })
-
-      // A4 dimensions in mm
-      const pageWidth = 210
-      const pageHeight = 297
-
-      // Calculate dimensions
-      const imgWidth = pageWidth
-      const imgHeight = (canvas.height * pageWidth) / canvas.width
-
-      // Create PDF
-      const pdf = new jsPDF('p', 'mm', 'a4')
-      const imgData = canvas.toDataURL('image/jpeg', 1.0) // Use JPEG with max quality
-
-      // Scale to fit on one page if needed
-      if (imgHeight > pageHeight) {
-        const ratio = pageHeight / imgHeight
-        const scaledWidth = imgWidth * ratio
-        const scaledHeight = pageHeight
-        const xOffset = (pageWidth - scaledWidth) / 2
-        pdf.addImage(
-          imgData,
-          'JPEG',
-          xOffset,
-          0,
-          scaledWidth,
-          scaledHeight,
-          '',
-          'FAST'
-        )
-      } else {
-        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight, '', 'FAST')
-      }
-
-      pdf.save(`uyelik-basvuru-formu-${formData.fullName || 'bos'}.pdf`)
+      const pdfGen = new TurkishPDFGenerator()
+      pdfGen.setElement(previewRef.current)
+      await pdfGen.generatePDF(
+        `uyelik-basvuru-formu-${formData.fullName || 'bos'}.pdf`
+      )
     } catch (error) {
       console.error('PDF oluşturma hatası:', error)
       alert('PDF oluşturulurken bir hata oluştu.')
@@ -237,9 +200,18 @@ export default function FormEditor({
           </div>
 
           <div className="border-t pt-4">
-            <Button onClick={handleDownloadPDF} className="w-full" size="lg">
+            <Button
+              onClick={() =>
+                downloadServerPdf(
+                  `uyelik-basvuru-formu-${formData.fullName || 'bos'}.pdf`,
+                  previewRef.current
+                )
+              }
+              className="w-full"
+              size="lg"
+            >
               <Download className="w-4 h-4 mr-2" />
-              PDF Olarak İndir
+              PDF İndir
             </Button>
           </div>
         </CardContent>
@@ -255,7 +227,7 @@ export default function FormEditor({
           <CardContent>
             <div
               ref={previewRef}
-              className="border rounded-lg p-6 bg-white"
+              className="border rounded-lg px-12 py-6 bg-white"
               style={{ color: '#000000' }}
             >
               <div className="text-center mb-4">
@@ -273,7 +245,10 @@ export default function FormEditor({
                 </h3>
               </div>
 
-              <div className="space-y-3 text-xs" style={{ color: '#000000' }}>
+              <div
+                className="space-y-3 text-base leading-relaxed"
+                style={{ color: '#000000' }}
+              >
                 <div
                   className="border-b pb-2"
                   style={{ borderColor: '#000000' }}

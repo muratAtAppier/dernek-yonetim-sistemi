@@ -72,9 +72,6 @@ export default async function UyelikBelgesiPage({
           <h1 className="text-2xl font-semibold leading-none tracking-tight mb-1">
             Üyelik Belgesi
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Üyelere verilecek resmi üyelik belgesi
-          </p>
         </div>
       </div>
 

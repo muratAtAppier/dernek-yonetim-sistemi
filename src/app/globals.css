@@ -70,9 +70,40 @@ body {
 .reveal-hidden {
   opacity: 0;
   transform: translateY(12px) scale(0.98);
-  transition: opacity 500ms ease, transform 500ms ease;
+  transition:
+    opacity 500ms ease,
+    transform 500ms ease;
 }
 .reveal-show {
   opacity: 1;
   transform: translateY(0) scale(1);
+}
+
+/* Print styles for server-side text PDFs */
+@page {
+  size: A4;
+  margin: 20mm;
+}
+
+@media print {
+  /* Avoid splitting important blocks across pages */
+  .avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .page-break {
+    break-before: page;
+    page-break-before: always;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  /* Improve text rendering for print */
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
