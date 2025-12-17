@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Plus, X, Download } from 'lucide-react'
 import { downloadServerPdf } from '@/lib/serverPdf'
+import { TurkishPDFGenerator } from '@/lib/pdfGenerator'
 
 interface YearActivity {
   year: string

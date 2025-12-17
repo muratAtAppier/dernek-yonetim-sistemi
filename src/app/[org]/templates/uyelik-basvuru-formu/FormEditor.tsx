@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Download } from 'lucide-react'
 import jsPDF from 'jspdf'
 import { downloadServerPdf } from '@/lib/serverPdf'
+import { TurkishPDFGenerator } from '@/lib/pdfGenerator'
 
 interface FormEditorProps {
   orgName: string
