@@ -70,9 +70,6 @@ export default async function FaaliyetRaporuPage({
           <h1 className="text-2xl font-semibold leading-none tracking-tight mb-1">
             Faaliyet Raporu
           </h1>
-          <p className="text-sm text-muted-foreground">
-            3 yıllık faaliyet raporu
-          </p>
         </div>
         <Link href={`/api/${params.org}/documents/faaliyet-raporu/pdf`}>
           <Button>

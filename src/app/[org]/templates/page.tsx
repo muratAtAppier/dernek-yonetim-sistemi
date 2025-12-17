@@ -16,6 +16,7 @@ import {
   Gavel,
   DollarSign,
   ClipboardList,
+  Users,
 } from 'lucide-react'
 
 const documentTypes = [
@@ -73,6 +74,15 @@ const documentTypes = [
     generateUrl: (org: string) => `/api/${org}/documents/faaliyet-raporu`,
     color: 'text-orange-600 dark:text-orange-400',
     bgColor: 'bg-orange-50 dark:bg-orange-950',
+  },
+  {
+    id: 'tum-uyeler',
+    name: 'Tüm Üyeler',
+    description: '',
+    icon: Users,
+    generateUrl: (org: string) => `/api/${org}/members/export`,
+    color: 'text-teal-600 dark:text-teal-400',
+    bgColor: 'bg-teal-50 dark:bg-teal-950',
   },
 ]
 

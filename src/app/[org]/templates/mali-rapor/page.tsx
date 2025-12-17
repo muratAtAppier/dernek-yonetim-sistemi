@@ -68,9 +68,6 @@ export default async function MaliRaporPage({ params: paramsPromise }: any) {
           <h1 className="text-2xl font-semibold leading-none tracking-tight mb-1">
             Mali Rapor
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Derneğin mali dönem raporu
-          </p>
         </div>
         <Link href={`/api/${params.org}/documents/mali-rapor/pdf`}>
           <Button>

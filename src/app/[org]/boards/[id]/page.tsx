@@ -5,6 +5,9 @@ import { LinkButton } from '@/components/ui/link-button'
 import { BoardDetailClient } from '@/app/[org]/boards/[id]/NewBoardDetailClient'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function BoardDetailPage(props: any) {
   const params = await props.params
   const session = await getServerSession(authOptions)

@@ -46,9 +46,6 @@ export default async function GenelKurulDivanTutanagiPage({
           <h1 className="text-2xl font-semibold leading-none tracking-tight mb-1">
             Genel Kurul Divan Tutanağı
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Genel kurul toplantısı divan tutanağı
-          </p>
         </div>
         <Link
           href={`/api/${params.org}/documents/genel-kurul-divan-tutanagi/pdf`}

@@ -4,6 +4,9 @@ import { prisma } from '../../../../lib/prisma'
 import { getSession } from '../../../../lib/auth'
 import { ensureOrgAccessBySlug, WRITE_ROLES } from '../../../../lib/authz'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const CreateBoard = z.object({
   type: z.enum(['EXECUTIVE', 'AUDIT']),
   name: z.string().min(2),

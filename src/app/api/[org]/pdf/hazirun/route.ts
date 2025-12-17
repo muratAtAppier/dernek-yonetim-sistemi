@@ -11,30 +11,48 @@ async function generateHazirunPDF(
     lastName: string
     nationalId: string | null
     phone: string | null
-  }>
+  }>,
+  orgName: string,
+  presidentName: string | null
 ) {
   const rows = members
     .map(
       (m, i) =>
-        `<tr><td>${i + 1}</td><td>${m.firstName} ${m.lastName}</td><td>${m.nationalId ?? ''}</td><td>${m.phone ?? ''}</td><td></td></tr>`
+        `<tr><td>${i + 1}</td><td>${m.firstName} ${m.lastName}</td><td>${m.nationalId ?? ''}</td><td></td></tr>`
     ) // signature empty column
     .join('')
+
+  const count = members.length
+  const now = new Date()
+  const today = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`
 
   const html = `<!doctype html>
   <html><head><meta charset="utf-8" />
   <style>
     body { font-family: Arial, sans-serif; font-size: 12px; }
-    h1 { font-size: 16px; }
+    h1 { font-size: 16px; text-align: center; }
     table { width: 100%; border-collapse: collapse; }
     th, td { border: 1px solid #444; padding: 6px; }
     th { background: #f0f0f0; }
+    .footer { margin-top: 20px; text-align: center; font-weight: bold; font-size: 14px; }
+    .signature { margin-top: 40px; text-align: right; padding-right: 50px; }
+    .signature-content { display: inline-block; min-width: 200px; text-align: center; }
   </style>
   </head><body>
-    <h1>Hazirun Listesi</h1>
+    <h1>${orgName} HAZİRUN LİSTESİ</h1>
     <table>
-      <thead><tr><th>#</th><th>Ad Soyad</th><th>TC</th><th>Telefon</th><th>İmza</th></tr></thead>
+      <thead><tr><th>#</th><th>Ad Soyad</th><th>TC</th><th>İmza</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
+    <div class="footer">//////// İŞ BU HAZİRUN LİSTESİ ${count} KİŞİDEN OLUŞMAKTADIR ////////</div>
+    <div class="signature">
+      <div style="margin-bottom: 60px;"></div>
+      <div class="signature-content">
+        ${presidentName || ''}<br/>
+        Yönetim Kurulu Başkanı<br/>
+        ${today}
+      </div>
+    </div>
   </body></html>`
 
   const { chromium } = await import('playwright')
@@ -75,7 +93,31 @@ export async function GET(
     take,
   })
 
-  const pdf = await generateHazirunPDF(members)
+  // Fetch current board president
+  const currentTerm = await prisma.boardTerm.findFirst({
+    where: {
+      boardId: access.org.boardId,
+      isActive: true,
+    },
+  })
+
+  let presidentName: string | null = null
+  if (currentTerm) {
+    const president = await prisma.boardMember.findFirst({
+      where: {
+        termId: currentTerm.id,
+        role: 'PRESIDENT',
+      },
+      include: {
+        member: true,
+      },
+    })
+    if (president) {
+      presidentName = `${president.member.firstName} ${president.member.lastName}`
+    }
+  }
+
+  const pdf = await generateHazirunPDF(members, access.org.name, presidentName)
   const bytes = new Uint8Array(pdf)
   const blob = new Blob([bytes], { type: 'application/pdf' })
   return new NextResponse(blob, {
@@ -116,7 +158,31 @@ export async function POST(
     orderBy: { lastName: 'asc' },
   })
 
-  const pdf = await generateHazirunPDF(members)
+  // Fetch current board president
+  const currentTerm = await prisma.boardTerm.findFirst({
+    where: {
+      boardId: access.org.boardId,
+      isActive: true,
+    },
+  })
+
+  let presidentName: string | null = null
+  if (currentTerm) {
+    const president = await prisma.boardMember.findFirst({
+      where: {
+        termId: currentTerm.id,
+        role: 'PRESIDENT',
+      },
+      include: {
+        member: true,
+      },
+    })
+    if (president) {
+      presidentName = `${president.member.firstName} ${president.member.lastName}`
+    }
+  }
+
+  const pdf = await generateHazirunPDF(members, access.org.name, presidentName)
   const bytes = new Uint8Array(pdf)
   const blob = new Blob([bytes], { type: 'application/pdf' })
   return new NextResponse(blob, {

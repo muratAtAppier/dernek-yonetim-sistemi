@@ -476,9 +476,9 @@ export default function NewMemberPage({
               className="mt-1 w-full border rounded px-3 py-2"
               {...register('status')}
             >
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="PASSIVE">PASSIVE</option>
-              <option value="LEFT">LEFT</option>
+              <option value="ACTIVE">Aktif</option>
+              <option value="PASSIVE">Pasif</option>
+              <option value="LEFT">Ayrıldı</option>
             </select>
           </div>
         </div>
@@ -559,8 +559,8 @@ export default function NewMemberPage({
                     {...register('initialFinanceType')}
                   >
                     <option value="">(Seçim yok)</option>
-                    <option value="CHARGE">CHARGE (Borç)</option>
-                    <option value="PAYMENT">PAYMENT (Ödeme)</option>
+                    <option value="CHARGE">Borç</option>
+                    <option value="PAYMENT">Ödeme</option>
                   </select>
                   {errors.initialFinanceType && (
                     <p className="text-xs text-red-600">
@@ -587,7 +587,6 @@ export default function NewMemberPage({
                   </label>
                   <select
                     className="mt-1 w-full border rounded px-3 py-2"
-                    disabled={watchType !== 'PAYMENT'}
                     {...register('initialFinancePaymentMethod')}
                   >
                     <option value="">(Seçim yok)</option>
@@ -596,78 +595,6 @@ export default function NewMemberPage({
                     <option value="CREDIT_CARD">Kredi Kartı</option>
                     <option value="OTHER">Diğer</option>
                   </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium">Plan</label>
-                  <select
-                    className="mt-1 w-full border rounded px-3 py-2"
-                    {...register('initialFinancePlanId')}
-                  >
-                    <option value="">(Seçim yok)</option>
-                    {plans.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Dönem</label>
-                  <select
-                    className="mt-1 w-full border rounded px-3 py-2"
-                    disabled={!watchPlanId || periods.length === 0}
-                    {...register('initialFinancePeriodId')}
-                  >
-                    <option value="">
-                      {watchPlanId
-                        ? periods.length
-                          ? '(Seçiniz)'
-                          : 'Dönem yok'
-                        : 'Önce plan'}
-                    </option>
-                    {periods.map((pr) => (
-                      <option key={pr.id} value={pr.id}>
-                        {pr.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex items-center gap-2 pt-6">
-                  <input
-                    type="checkbox"
-                    id="initialFinanceDonation"
-                    disabled={watchType !== 'PAYMENT'}
-                    {...register('initialFinanceDonation')}
-                  />
-                  <label htmlFor="initialFinanceDonation" className="text-sm">
-                    Bağış
-                  </label>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium">Makbuz No</label>
-                  <input
-                    className="mt-1 w-full border rounded px-3 py-2"
-                    {...register('initialFinanceReceiptNo')}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Referans</label>
-                  <input
-                    className="mt-1 w-full border rounded px-3 py-2"
-                    placeholder="örn: BAGIS"
-                    {...register('initialFinanceReference')}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">Not</label>
-                  <input
-                    className="mt-1 w-full border rounded px-3 py-2"
-                    {...register('initialFinanceNote')}
-                  />
                 </div>
               </div>
             </div>
