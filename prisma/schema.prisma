@@ -30,6 +30,8 @@ model Organization {
   templates           Template[]
   smsCampaigns        SmsCampaign[]
   smsMessages         SmsMessage[]
+  emailCampaigns      EmailCampaign[]
+  emailMessages       EmailMessage[]
   scheduledDebits     ScheduledDebit[]
 }
 
@@ -61,6 +63,7 @@ model Member {
   groups              MemberGroup[]
   tags                MemberTag[]
   smsMessages         SmsMessage[]
+  emailMessages       EmailMessage[]
   scheduledDebits     ScheduledDebitMember[]
 
   @@unique([organizationId, nationalId], map: "Member_org_nationalId_unique")
@@ -505,6 +508,48 @@ model SmsMessage {
   @@index([organizationId, status])
 }
 
+// --- Email / Messaging ---
+model EmailCampaign {
+  id              String         @id @default(cuid())
+  organizationId  String
+  name            String
+  subject         String
+  message         String
+  channel         MessageChannel @default(EMAIL)
+  status          CampaignStatus @default(DRAFT)
+  totalRecipients Int            @default(0)
+  sentCount       Int            @default(0)
+  failedCount     Int            @default(0)
+  createdAt       DateTime       @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  messages        EmailMessage[]
+
+  @@index([organizationId, createdAt])
+}
+
+model EmailMessage {
+  id             String         @id @default(cuid())
+  organizationId String
+  campaignId     String?
+  memberId       String?
+  email          String
+  subject        String
+  content        String
+  channel        MessageChannel @default(EMAIL)
+  status         MessageStatus  @default(PENDING)
+  error          String?
+  createdAt      DateTime       @default(now())
+  sentAt         DateTime?
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign       EmailCampaign? @relation(fields: [campaignId], references: [id])
+  member         Member?        @relation(fields: [memberId], references: [id])
+
+  @@index([organizationId, campaignId])
+  @@index([organizationId, status])
+}
+
 enum MemberStatus {
   ACTIVE
   PASSIVE
@@ -603,6 +648,7 @@ enum PaymentMethod {
 enum MessageChannel {
   SMS
   WHATSAPP
+  EMAIL
 }
 
 enum MessageStatus {

@@ -1,7 +1,7 @@
 import { getSession } from '@/lib/auth'
 import { ensureOrgAccessBySlug } from '@/lib/authz'
 import { notFound, redirect } from 'next/navigation'
-import { SmsHistoryList } from '@/components/SmsHistoryList'
+import CommHistoryShell from '@/components/CommHistoryShell'
 
 export default async function SmsHistoryPage({
   params,
@@ -25,10 +25,10 @@ export default async function SmsHistoryPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">SMS Gönderim Geçmişi</h1>
+        <h1 className="text-3xl font-bold">İletişim Geçmişi</h1>
       </div>
 
-      <SmsHistoryList org={org} />
+      <CommHistoryShell org={org} />
     </div>
   )
 }

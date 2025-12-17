@@ -11,7 +11,7 @@ export function OrgNav({ org }: { org: string }) {
     { href: `/${org}/boards`, label: 'Kurullar' },
     { href: `/${org}/templates`, label: 'Dökümanlar' },
     { href: `/${org}/finance`, label: 'Finans' },
-    { href: `/${org}/sms`, label: 'SMS Geçmişi' },
+    { href: `/${org}/sms`, label: 'İletişim Geçmişi' },
   ]
   return (
     <nav

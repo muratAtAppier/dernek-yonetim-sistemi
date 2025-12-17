@@ -156,8 +156,8 @@ export default async function OrgHomePage({
       },
       {
         href: `/${org}/sms`,
-        title: 'SMS Geçmişi',
-        description: 'SMS gönderim geçmişi ve raporlar',
+        title: 'İletişim Geçmişi',
+        description: 'SMS ve e-posta geçmişi ve raporlar',
         icon: (
           <svg
             xmlns="http://www.w3.org/2000/svg"
