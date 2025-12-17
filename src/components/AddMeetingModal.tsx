@@ -46,6 +46,9 @@ export default function AddMeetingModal({
   )
   const [denetimKuruluRaporuFile, setDenetimKuruluRaporuFile] =
     useState<File | null>(null)
+  const [otherFiles, setOtherFiles] = useState<
+    Array<{ name: string; file: File | null }>
+  >([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showIntervalPrompt, setShowIntervalPrompt] = useState(true)
@@ -144,12 +147,49 @@ export default function AddMeetingModal({
       formData.append('documentType', type)
 
       try {
-        await fetch(`/api/${org}/meetings/${meetingId}/documents`, {
-          method: 'POST',
-          body: formData,
-        })
+        const response = await fetch(
+          `/api/${org}/meetings/${meetingId}/documents`,
+          {
+            method: 'POST',
+            body: formData,
+          }
+        )
+        if (!response.ok) {
+          const errorData = await response.json()
+          console.error(`Error uploading ${type}:`, errorData)
+        } else {
+          console.log(`Successfully uploaded ${type}`)
+        }
       } catch (e) {
         console.error(`Error uploading ${type}:`, e)
+      }
+    }
+
+    // Upload other files
+    for (const { name, file } of otherFiles) {
+      if (!file || !name.trim()) continue
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('documentType', 'OTHER')
+      formData.append('customName', name)
+
+      try {
+        const response = await fetch(
+          `/api/${org}/meetings/${meetingId}/documents`,
+          {
+            method: 'POST',
+            body: formData,
+          }
+        )
+        if (!response.ok) {
+          const errorData = await response.json()
+          console.error(`Error uploading OTHER document "${name}":`, errorData)
+        } else {
+          console.log(`Successfully uploaded OTHER document "${name}"`)
+        }
+      } catch (e) {
+        console.error(`Error uploading OTHER document "${name}":`, e)
       }
     }
   }
@@ -346,6 +386,76 @@ export default function AddMeetingModal({
                   Seçilen: {denetimKuruluRaporuFile.name}
                 </p>
               )}
+            </div>
+
+            <div className="space-y-3 border-t pt-3 mt-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Diğer Belgeler</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setOtherFiles([...otherFiles, { name: '', file: null }])
+                  }
+                >
+                  + Belge Ekle
+                </Button>
+              </div>
+
+              {otherFiles.map((otherFile, index) => (
+                <div
+                  key={index}
+                  className="space-y-2 p-3 border rounded-lg bg-muted/30"
+                >
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor={`otherFileName-${index}`}
+                      className="text-sm"
+                    >
+                      Belge Adı
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setOtherFiles(otherFiles.filter((_, i) => i !== index))
+                      }
+                    >
+                      Kaldır
+                    </Button>
+                  </div>
+                  <Input
+                    id={`otherFileName-${index}`}
+                    value={otherFile.name}
+                    onChange={(e) => {
+                      const newFiles = [...otherFiles]
+                      newFiles[index].name = e.target.value
+                      setOtherFiles(newFiles)
+                    }}
+                    placeholder="Örn: Yıllık Faaliyet Özeti"
+                  />
+                  <Input
+                    id={`otherFile-${index}`}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null
+                      if (file) {
+                        const newFiles = [...otherFiles]
+                        newFiles[index].file = file
+                        setOtherFiles(newFiles)
+                      }
+                    }}
+                  />
+                  {otherFile.file && (
+                    <p className="text-sm text-muted-foreground">
+                      Seçilen: {otherFile.file.name}
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 

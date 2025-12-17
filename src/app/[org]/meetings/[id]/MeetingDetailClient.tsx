@@ -28,24 +28,15 @@ export default function MeetingDetailClient({
   const router = useRouter()
   const initialTab = (() => {
     const t = (searchParams?.get('tab') || '').toLowerCase()
-    const allowed = [
-      'overview',
-      'agendas',
-      'invites',
-      'attendance',
-      'minutes',
-      'documents',
-    ]
+    const allowed = ['overview', 'agendas', 'invites', 'documents']
     return (allowed.includes(t) ? (t as any) : 'overview') as
       | 'overview'
       | 'agendas'
       | 'invites'
-      | 'attendance'
-      | 'minutes'
       | 'documents'
   })()
   const [active, setActive] = useState<
-    'overview' | 'agendas' | 'invites' | 'attendance' | 'minutes' | 'documents'
+    'overview' | 'agendas' | 'invites' | 'documents'
   >(initialTab)
   const [loading, setLoading] = useState(false)
   const [meeting, setMeeting] = useState<any | null>(initialMeeting || null)
@@ -54,6 +45,8 @@ export default function MeetingDetailClient({
   )
   const [uploading, setUploading] = useState(false)
   const [selectedDocumentType, setSelectedDocumentType] = useState<string>('')
+  const [customDocumentName, setCustomDocumentName] = useState<string>('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const { add } = useToast()
 
   const REQUIRED_DOCUMENT_TYPES = [
@@ -159,80 +152,6 @@ export default function MeetingDetailClient({
     await loadInvites()
   }
 
-  // Attendance
-  const [attFilter, setAttFilter] = useState<'all' | 'present' | 'absent'>(
-    'all'
-  )
-  const [attendance, setAttendance] = useState<
-    Array<{
-      id: string
-      member: { id: string; firstName: string; lastName: string }
-      present: boolean
-    }>
-  >([])
-  async function loadAttendance() {
-    const res = await fetch(
-      `/api/${org}/meetings/attendance?meetingId=${encodeURIComponent(meetingId)}`,
-      { cache: 'no-store' }
-    )
-    const data = res.ok ? await res.json() : { items: [] }
-    setAttendance(data.items || [])
-  }
-  async function togglePresent(id: string, present: boolean) {
-    const res = await fetch(`/api/${org}/meetings/attendance`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, present }),
-    })
-    if (!res.ok)
-      return add({ variant: 'error', title: 'Yoklama güncellenemedi' })
-    setAttendance((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, present } : a))
-    )
-    add({
-      variant: 'success',
-      title: present ? 'Katıldı işaretlendi' : 'Katılmadı işaretlendi',
-    })
-  }
-
-  // Minutes/Decisions for meeting
-  const [minutes, setMinutes] = useState<
-    Array<{ id: string; title: string; content: string; createdAt: string }>
-  >([])
-  const [minTitle, setMinTitle] = useState('')
-  const [minContent, setMinContent] = useState('')
-  async function loadMinutes() {
-    const res = await fetch(
-      `/api/${org}/meetings/minutes?meetingId=${encodeURIComponent(meetingId)}`,
-      { cache: 'no-store' }
-    )
-    const data = res.ok ? await res.json() : { items: [] }
-    setMinutes(data.items || [])
-  }
-  async function addMinute() {
-    if (!minTitle.trim() || !minContent.trim()) return
-    const res = await fetch(`/api/${org}/meetings/minutes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ meetingId, title: minTitle, content: minContent }),
-    })
-    if (!res.ok) return add({ variant: 'error', title: 'Tutanak eklenemedi' })
-    setMinTitle('')
-    setMinContent('')
-    await loadMinutes()
-    add({ variant: 'success', title: 'Tutanak eklendi' })
-  }
-  async function deleteMinute(id: string) {
-    if (!confirm('Tutanak silinsin mi?')) return
-    const res = await fetch(
-      `/api/${org}/meetings/minutes?id=${encodeURIComponent(id)}`,
-      { method: 'DELETE' }
-    )
-    if (!res.ok) return add({ variant: 'error', title: 'Tutanak silinemedi' })
-    await loadMinutes()
-    add({ variant: 'success', title: 'Tutanak silindi' })
-  }
-
   // Documents
   async function loadDocuments() {
     const res = await fetch(`/api/${org}/meetings/${meetingId}/documents`, {
@@ -241,19 +160,36 @@ export default function MeetingDetailClient({
     const data = res.ok ? await res.json() : { items: [] }
     setDocuments(data.items || [])
   }
-  async function uploadDocument(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (file) {
+      setSelectedFile(file)
+    }
+  }
+
+  async function uploadDocument() {
+    if (!selectedFile) {
+      add({ variant: 'error', title: 'Lütfen dosya seçin' })
+      return
+    }
 
     if (!selectedDocumentType) {
       add({ variant: 'error', title: 'Lütfen belge türü seçin' })
       return
     }
 
+    if (selectedDocumentType === 'OTHER' && !customDocumentName.trim()) {
+      add({ variant: 'error', title: 'Lütfen belge adı girin' })
+      return
+    }
+
     setUploading(true)
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', selectedFile)
     formData.append('documentType', selectedDocumentType)
+    if (selectedDocumentType === 'OTHER') {
+      formData.append('customName', customDocumentName)
+    }
 
     const res = await fetch(`/api/${org}/meetings/${meetingId}/documents`, {
       method: 'POST',
@@ -271,7 +207,8 @@ export default function MeetingDetailClient({
     await loadDocuments()
     setUploading(false)
     setSelectedDocumentType('')
-    e.target.value = '' // Reset file input
+    setCustomDocumentName('')
+    setSelectedFile(null)
   }
   async function deleteDocument(docId: string) {
     if (!confirm('Belgeyi silmek istiyor musunuz?')) return
@@ -295,8 +232,6 @@ export default function MeetingDetailClient({
   useEffect(() => {
     if (active === 'agendas') loadAgendas()
     if (active === 'invites') loadInvites()
-    if (active === 'attendance') loadAttendance()
-    if (active === 'minutes') loadMinutes()
     if (active === 'documents') loadDocuments()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active])
@@ -306,8 +241,6 @@ export default function MeetingDetailClient({
       { id: 'overview', label: 'Özet' },
       { id: 'agendas', label: 'Gündem' },
       { id: 'invites', label: 'Davetiyeler' },
-      { id: 'attendance', label: 'Yoklama' },
-      { id: 'minutes', label: 'Tutanaklar' },
       { id: 'documents', label: 'Belgeler' },
     ],
     []
@@ -486,141 +419,84 @@ export default function MeetingDetailClient({
         </ul>
       </TabPanel>
 
-      <TabPanel active={active === 'attendance'}>
-        <div className="mb-2 flex items-center gap-2">
-          <Select
-            value={attFilter}
-            onChange={(e) =>
-              setAttFilter((e.target as HTMLSelectElement).value as any)
-            }
-            className="h-8 w-[200px]"
-          >
-            <option value="all">Tümü</option>
-            <option value="present">Katılanlar</option>
-            <option value="absent">Katılmayanlar</option>
-          </Select>
-        </div>
-        <ul className="divide-y rounded border">
-          {attendance
-            .filter(
-              (a) =>
-                attFilter === 'all' ||
-                (attFilter === 'present' ? a.present : !a.present)
-            )
-            .map((a) => (
-              <li key={a.id} className="p-2 text-sm flex items-center gap-2">
-                <div className="flex-1">
-                  {a.member.firstName} {a.member.lastName}
-                </div>
-                <label className="text-xs flex items-center gap-1">
-                  <input
-                    type="checkbox"
-                    checked={a.present}
-                    onChange={(e) =>
-                      togglePresent(a.id, e.currentTarget.checked)
-                    }
-                  />
-                  Katıldı
-                </label>
-              </li>
-            ))}
-          {attendance.length === 0 && (
-            <li className="p-2 text-sm text-muted-foreground">
-              Henüz yoklama yok.
-            </li>
-          )}
-        </ul>
-      </TabPanel>
-
-      <TabPanel active={active === 'minutes'}>
-        <div className="space-y-2 mb-2 rounded border p-2">
-          <Input
-            value={minTitle}
-            onChange={(e) => setMinTitle(e.target.value)}
-            placeholder="Başlık"
-          />
-          <textarea
-            value={minContent}
-            onChange={(e) => setMinContent(e.target.value)}
-            placeholder="İçerik"
-            className="w-full h-28 rounded border px-2 py-1"
-          />
-          <Button onClick={addMinute}>Ekle</Button>
-        </div>
-        <ul className="divide-y rounded border">
-          {minutes.map((m) => (
-            <li key={m.id} className="p-2 text-sm">
-              <div className="flex items-center justify-between">
-                <div className="font-medium">{m.title}</div>
-                <div className="text-xs text-muted-foreground">
-                  {new Date(m.createdAt).toLocaleString()}
-                </div>
-              </div>
-              <div className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">
-                {m.content}
-              </div>
-              <div className="mt-2 flex justify-end">
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => deleteMinute(m.id)}
-                >
-                  Sil
-                </Button>
-              </div>
-            </li>
-          ))}
-          {minutes.length === 0 && (
-            <li className="p-2 text-sm text-muted-foreground">
-              Henüz tutanak yok.
-            </li>
-          )}
-        </ul>
-      </TabPanel>
-
       <TabPanel active={active === 'documents'}>
-        {!allDocumentsUploaded && (
-          <>
-            <div className="mb-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <Select
-                  value={selectedDocumentType}
-                  onChange={(e) => setSelectedDocumentType(e.target.value)}
-                  className="flex-1"
-                  disabled={uploading}
-                >
-                  <option value="">Belge türü seçin</option>
-                  {missingTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {getMeetingDocumentTypeLabel(type)}
-                    </option>
-                  ))}
-                </Select>
-                <Input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx"
-                  onChange={uploadDocument}
-                  disabled={uploading || !selectedDocumentType}
-                  className="flex-1"
-                />
-              </div>
-              {uploading && (
-                <span className="text-sm text-muted-foreground">
-                  Yüklüyor...
-                </span>
-              )}
+        <div className="mb-4 space-y-2">
+          {!allDocumentsUploaded && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-sm text-blue-800 dark:text-blue-200 mb-3">
+              Eksik gerekli belgeler:{' '}
+              {missingTypes
+                .map((t) => getMeetingDocumentTypeLabel(t))
+                .join(', ')}
             </div>
-            <div className="text-xs text-muted-foreground mb-2">
-              Kabul edilen dosya türleri: PDF, Word (.doc, .docx), Excel (.xls,
-              .xlsx)
+          )}
+          {allDocumentsUploaded && (
+            <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-sm text-green-800 dark:text-green-200 mb-3">
+              Tüm gerekli belgeler yüklenmiştir.
             </div>
-          </>
-        )}
-        {allDocumentsUploaded && (
-          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-sm text-green-800 dark:text-green-200">
-            Tüm gerekli belgeler yüklenmiştir.
+          )}
+          <Select
+            value={selectedDocumentType}
+            onChange={(e) => {
+              setSelectedDocumentType(e.target.value)
+              setCustomDocumentName('')
+              setSelectedFile(null)
+            }}
+            disabled={uploading}
+          >
+            <option value="">Belge türü seçin</option>
+            {missingTypes.map((type) => (
+              <option key={type} value={type}>
+                {getMeetingDocumentTypeLabel(type)}
+              </option>
+            ))}
+            <option value="OTHER">Diğer</option>
+          </Select>
+
+          {selectedDocumentType === 'OTHER' && (
+            <Input
+              placeholder="Belge adı girin (örn: Mali Rapor)"
+              value={customDocumentName}
+              onChange={(e) => setCustomDocumentName(e.target.value)}
+              disabled={uploading}
+            />
+          )}
+
+          <div className="flex items-center gap-2">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx"
+              onChange={handleFileSelect}
+              disabled={uploading || !selectedDocumentType}
+              className="flex-1"
+            />
+            <Button
+              onClick={uploadDocument}
+              disabled={
+                uploading ||
+                !selectedDocumentType ||
+                !selectedFile ||
+                (selectedDocumentType === 'OTHER' && !customDocumentName.trim())
+              }
+            >
+              {uploading ? 'Yükleniyor...' : 'Yükle'}
+            </Button>
           </div>
-        )}
+
+          {selectedFile && (
+            <div className="text-sm text-muted-foreground">
+              Seçilen: {selectedFile.name}
+            </div>
+          )}
+
+          {uploading && (
+            <span className="text-sm text-muted-foreground">Yüklüyor...</span>
+          )}
+
+          <div className="text-xs text-muted-foreground">
+            Kabul edilen dosya türleri: PDF, Word (.doc, .docx), Excel (.xls,
+            .xlsx)
+          </div>
+        </div>
         <ul className="divide-y rounded border">
           {documents.map((doc) => (
             <li key={doc.id} className="p-3 flex items-center justify-between">
@@ -628,7 +504,9 @@ export default function MeetingDetailClient({
                 <div className="flex items-center gap-2 mb-1">
                   {doc.documentType && (
                     <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                      {getMeetingDocumentTypeLabel(doc.documentType)}
+                      {doc.documentType === 'OTHER' && doc.customName
+                        ? doc.customName
+                        : getMeetingDocumentTypeLabel(doc.documentType)}
                     </span>
                   )}
                 </div>

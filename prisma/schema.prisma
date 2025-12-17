@@ -281,12 +281,14 @@ enum MeetingDocumentType {
   HAZIRUN_LISTESI
   FAALIYET_RAPORU
   DENETIM_KURULU_RAPORU
+  OTHER
 }
 
 model MeetingDocument {
   id           String              @id @default(cuid())
   meetingId    String
   documentType MeetingDocumentType
+  customName   String?             // Custom name for OTHER document type
   fileName     String
   filePath     String
   fileSize     Int

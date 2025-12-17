@@ -33,6 +33,7 @@ export const MEETING_DOCUMENT_TYPE_LABELS = {
   HAZIRUN_LISTESI: 'Hazırun Listesi',
   FAALIYET_RAPORU: 'Faaliyet Raporu',
   DENETIM_KURULU_RAPORU: 'Denetim Kurulu Raporu',
+  OTHER: 'Diğer',
 } as const
 
 export const DEFAULT_INTERVAL_YEARS = 3

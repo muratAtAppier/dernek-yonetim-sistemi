@@ -4,9 +4,16 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Download, FileSpreadsheet, FileText, Users } from 'lucide-react'
+import {
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Users,
+  ArrowLeft,
+} from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 
 export default function TumUyelerPage() {
   const params = useParams()
@@ -62,6 +69,14 @@ export default function TumUyelerPage() {
   return (
     <div className="container mx-auto py-6 max-w-5xl">
       <div className="mb-6">
+        <div className="flex items-center gap-4 mb-4">
+          <Link href={`/${org}/templates`}>
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Geri
+            </Button>
+          </Link>
+        </div>
         <div className="flex items-center gap-3 mb-2">
           <div className="w-12 h-12 rounded-lg bg-teal-50 dark:bg-teal-950 flex items-center justify-center">
             <Users className="w-6 h-6 text-teal-600 dark:text-teal-400" />

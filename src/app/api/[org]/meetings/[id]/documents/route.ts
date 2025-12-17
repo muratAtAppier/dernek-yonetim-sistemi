@@ -70,6 +70,7 @@ export async function POST(
     const formData = await req.formData()
     const file = formData.get('file') as File
     const documentType = formData.get('documentType') as string
+    const customName = formData.get('customName') as string | null
 
     if (!file)
       return NextResponse.json({ error: 'Dosya yüklenmedi' }, { status: 400 })
@@ -86,10 +87,19 @@ export async function POST(
       'HAZIRUN_LISTESI',
       'FAALIYET_RAPORU',
       'DENETIM_KURULU_RAPORU',
+      'OTHER',
     ]
     if (!validTypes.includes(documentType)) {
       return NextResponse.json(
         { error: 'Geçersiz belge türü' },
+        { status: 400 }
+      )
+    }
+
+    // Validate customName for OTHER type
+    if (documentType === 'OTHER' && !customName?.trim()) {
+      return NextResponse.json(
+        { error: 'Diğer belgeler için ad belirtilmeli' },
         { status: 400 }
       )
     }
@@ -123,6 +133,7 @@ export async function POST(
       data: {
         meetingId: id,
         documentType,
+        customName: customName || null,
         fileName: file.name,
         filePath,
         fileSize: file.size,
