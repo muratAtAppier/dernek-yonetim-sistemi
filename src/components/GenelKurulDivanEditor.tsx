@@ -28,6 +28,8 @@ interface GenelKurulData {
   katipUye1Name: string
   katipUye2Id: string
   katipUye2Name: string
+  yonetimBaskanId: string
+  yonetimBaskanName: string
   openingText: string
   agendaItems: string[]
   yonetimAsil: string[]
@@ -43,6 +45,7 @@ interface Props {
   orgAddress?: string
   totalMemberCount?: number
   availableMembers?: MemberOption[]
+  yonetimKuruluBaskani?: MemberOption
 }
 
 export function GenelKurulDivanEditor({
@@ -51,6 +54,7 @@ export function GenelKurulDivanEditor({
   orgAddress = '',
   totalMemberCount = 0,
   availableMembers = [],
+  yonetimKuruluBaskani,
 }: Props) {
   const previewRef = useRef<HTMLDivElement>(null)
 
@@ -71,6 +75,14 @@ export function GenelKurulDivanEditor({
     return `${hours}:${minutes}`
   }, [])
 
+  // Calculate end time (1 hour after meeting time)
+  const calculateEndTime = (meetingTime: string): string => {
+    const [hours, minutes] = meetingTime.split(':').map(Number)
+    if (isNaN(hours) || isNaN(minutes)) return ''
+    const endHours = (hours + 1) % 24
+    return `${String(endHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+  }
+
   const [data, setData] = useState<GenelKurulData>({
     meetingDate: initialData?.meetingDate || currentDate,
     meetingTime: initialData?.meetingTime || currentTime,
@@ -83,9 +95,13 @@ export function GenelKurulDivanEditor({
     katipUye1Name: initialData?.katipUye1Name || '',
     katipUye2Id: initialData?.katipUye2Id || '',
     katipUye2Name: initialData?.katipUye2Name || '',
+    yonetimBaskanId:
+      initialData?.yonetimBaskanId || yonetimKuruluBaskani?.id || '',
+    yonetimBaskanName:
+      initialData?.yonetimBaskanName || yonetimKuruluBaskani?.name || '',
     openingText:
       initialData?.openingText ||
-      'Yönetim Kurulu Başkanı tarafından açılmıştır. Açılışa müteakiben verilen önerge ile Divan Başkanlığına seçildiğim için teşekkür ederim.',
+      'toplantı, Yönetim Kurulu Başkanı tarafından açılmıştır. Açılışa müteakiben verilen önerge ile,',
     agendaItems: initialData?.agendaItems || [
       'Açılış ve Yoklama',
       'Divanın Teşekkülü, Saygı Duruşu ve İstiklal Marşı',
@@ -99,7 +115,7 @@ export function GenelKurulDivanEditor({
     denetimYedek: initialData?.denetimYedek || [],
     closingText:
       initialData?.closingText ||
-      'Gündemin son maddesi olan dilek ve temennilerde söz alan üyeler sonuçta yeni yönetim kuruluna başarılar diledikten sonra, toplantı aynı gün saat 14.45 de tarafımızca kapatılmıştır.',
+      'Gündemin son maddesi olan dilek ve temennilerde söz alan üyeler sonuçta yeni yönetim kuruluna başarılar diledikten sonra, toplantı aynı gün saat {{endTime}} de tarafımızca kapatılmıştır. İş bu Divan Tutanağı müştereken imza altına alınmıştır.',
   })
 
   // Helper to handle member selection from dropdown
@@ -326,13 +342,29 @@ export function GenelKurulDivanEditor({
           <h3 className="font-semibold">Yönetim Kurulu Asil Üyeleri</h3>
           {data.yonetimAsil.map((member, index) => (
             <div key={index} className="flex gap-2">
-              <Input
-                value={member}
-                onChange={(e) =>
-                  updateArrayItem('yonetimAsil', index, e.target.value)
+              <Select
+                value={
+                  availableMembers.find((m) => m.name === member)?.id || ''
                 }
-                placeholder={`${index + 1}. Üye`}
-              />
+                onChange={(e) => {
+                  const selectedMember = availableMembers.find(
+                    (m) => m.id === e.target.value
+                  )
+                  updateArrayItem(
+                    'yonetimAsil',
+                    index,
+                    selectedMember?.name || ''
+                  )
+                }}
+                className="flex-1"
+              >
+                <option value="">Üye seçiniz...</option>
+                {availableMembers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </Select>
               <Button
                 type="button"
                 variant="ghost"
@@ -360,13 +392,29 @@ export function GenelKurulDivanEditor({
           <h3 className="font-semibold">Yönetim Kurulu Yedek Üyeleri</h3>
           {data.yonetimYedek.map((member, index) => (
             <div key={index} className="flex gap-2">
-              <Input
-                value={member}
-                onChange={(e) =>
-                  updateArrayItem('yonetimYedek', index, e.target.value)
+              <Select
+                value={
+                  availableMembers.find((m) => m.name === member)?.id || ''
                 }
-                placeholder={`${index + 1}. Yedek Üye`}
-              />
+                onChange={(e) => {
+                  const selectedMember = availableMembers.find(
+                    (m) => m.id === e.target.value
+                  )
+                  updateArrayItem(
+                    'yonetimYedek',
+                    index,
+                    selectedMember?.name || ''
+                  )
+                }}
+                className="flex-1"
+              >
+                <option value="">Üye seçiniz...</option>
+                {availableMembers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </Select>
               <Button
                 type="button"
                 variant="ghost"
@@ -394,13 +442,29 @@ export function GenelKurulDivanEditor({
           <h3 className="font-semibold">Denetim Kurulu Asil Üyeleri</h3>
           {data.denetimAsil.map((member, index) => (
             <div key={index} className="flex gap-2">
-              <Input
-                value={member}
-                onChange={(e) =>
-                  updateArrayItem('denetimAsil', index, e.target.value)
+              <Select
+                value={
+                  availableMembers.find((m) => m.name === member)?.id || ''
                 }
-                placeholder={`${index + 1}. Üye`}
-              />
+                onChange={(e) => {
+                  const selectedMember = availableMembers.find(
+                    (m) => m.id === e.target.value
+                  )
+                  updateArrayItem(
+                    'denetimAsil',
+                    index,
+                    selectedMember?.name || ''
+                  )
+                }}
+                className="flex-1"
+              >
+                <option value="">Üye seçiniz...</option>
+                {availableMembers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </Select>
               <Button
                 type="button"
                 variant="ghost"
@@ -428,13 +492,29 @@ export function GenelKurulDivanEditor({
           <h3 className="font-semibold">Denetim Kurulu Yedek Üyeleri</h3>
           {data.denetimYedek.map((member, index) => (
             <div key={index} className="flex gap-2">
-              <Input
-                value={member}
-                onChange={(e) =>
-                  updateArrayItem('denetimYedek', index, e.target.value)
+              <Select
+                value={
+                  availableMembers.find((m) => m.name === member)?.id || ''
                 }
-                placeholder={`${index + 1}. Yedek Üye`}
-              />
+                onChange={(e) => {
+                  const selectedMember = availableMembers.find(
+                    (m) => m.id === e.target.value
+                  )
+                  updateArrayItem(
+                    'denetimYedek',
+                    index,
+                    selectedMember?.name || ''
+                  )
+                }}
+                className="flex-1"
+              >
+                <option value="">Üye seçiniz...</option>
+                {availableMembers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </Select>
               <Button
                 type="button"
                 variant="ghost"
@@ -494,7 +574,9 @@ export function GenelKurulDivanEditor({
                 {data.meetingTime} {data.meetingLocation} adresinde yapılan
                 olağan Genel Kurul toplantısında salt çoğunluğun olduğu
                 anlaşılıp ({data.totalMembers} Üyeden {data.presentMembers} Üye
-                bulundu) {data.openingText}
+                bulundu) toplantı, Yönetim Kurulu Başkanı{' '}
+                {yonetimKuruluBaskani?.name || '(Tanımlı değil)'} tarafından
+                açılmıştır. Açılışa müteakiben verilen önerge ile,
               </p>
 
               <div className="border-t pt-3">
@@ -506,6 +588,13 @@ export function GenelKurulDivanEditor({
                   {data.katipUye2Name || '(Seçilmedi)'} Genel Kurulca oybirliği
                   ile seçildiler.
                 </p>
+                <p className="mt-3">
+                  Divan Başkanının teşekkür konuşmasından sonra aziz
+                  şehitlerimiz için saygı duruşu ardından İstiklal Marşı okundu.
+                  Gündem Genel Kurula sunuldu. Gündem üzerine söz alan üyeler,
+                  gündemin aşağıdaki şekilde belirlenmesini talep ettiler. Buna
+                  göre;
+                </p>
               </div>
 
               <div className="border-t pt-3">
@@ -514,6 +603,24 @@ export function GenelKurulDivanEditor({
                     {index + 1}-{item}
                   </p>
                 ))}
+              </div>
+
+              <div className="border-t pt-3">
+                <p>
+                  Gündem teklifi oylamaya sunuldu. Oybirliği ile kabul edildi.
+                </p>
+                <p className="mt-2">
+                  Yönetim Kurulu raporları Yönetim Kurulu Başkanı{' '}
+                  {yonetimKuruluBaskani?.name || '(Tanımlı değil)'} tarafından,
+                  Denetim Kurulu Raporu ise divan başkanlığınca okundu. Okunan
+                  raporlar üzerine lehte ve aleyhte söz alan olmadığının
+                  görülmesi üzerine Yönetim Kurulunun ibrası oylamaya sunuldu.
+                  Yönetim Kurulu oybirliği ile ibra edildi.
+                </p>
+                <p className="mt-2">
+                  Yapılan gizli oylama, açık tasnif sonucu yeni yönetim ve
+                  denetim kurulu aşağıdaki şekilde teşekkül etmiştir:
+                </p>
               </div>
 
               <div className="border-t pt-3">
@@ -569,19 +676,24 @@ export function GenelKurulDivanEditor({
               </div>
 
               <div className="border-t pt-4 mt-4">
-                <p className="text-xs">{data.closingText}</p>
+                <p>
+                  {data.closingText.replace(
+                    '{{endTime}}',
+                    calculateEndTime(data.meetingTime)
+                  )}
+                </p>
                 <div className="mt-4 flex justify-between items-end">
                   <div>
-                    <p className="text-xs">
-                      {data.katipUye1Name || '(Seçilmedi)'}
-                    </p>
-                    <p className="text-xs">Katip Üye</p>
+                    <p>{data.katipUye1Name || '(Seçilmedi)'}</p>
+                    <p>Katip Üye</p>
+                  </div>
+                  <div className="text-center">
+                    <p>{data.katipUye2Name || '(Seçilmedi)'}</p>
+                    <p>Katip Üye</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs">
-                      {data.divanBaskanName || '(Seçilmedi)'}
-                    </p>
-                    <p className="text-xs">Divan Başkanı</p>
+                    <p>{data.divanBaskanName || '(Seçilmedi)'}</p>
+                    <p>Divan Başkanı</p>
                   </div>
                 </div>
               </div>

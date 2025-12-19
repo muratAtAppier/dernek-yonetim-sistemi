@@ -61,6 +61,29 @@ export default async function GenelKurulDivanTutanagiPage({
     name: `${m.firstName} ${m.lastName}`,
   }))
 
+  // Get the current "Yönetim Kurulu Başkanı" from the active term
+  const yonetimKuruluBaskani = await prisma.boardMember.findFirst({
+    where: {
+      role: 'PRESIDENT',
+      term: {
+        isActive: true,
+        board: {
+          organizationId: access.org.id,
+          type: 'EXECUTIVE',
+        },
+      },
+    },
+    select: {
+      memberId: true,
+      member: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+    },
+  })
+
   return (
     <div>
       <div className="mb-6 flex items-center gap-4">
@@ -82,6 +105,14 @@ export default async function GenelKurulDivanTutanagiPage({
         orgAddress={org?.address || ''}
         totalMemberCount={totalMemberCount}
         availableMembers={availableMembers}
+        yonetimKuruluBaskani={
+          yonetimKuruluBaskani
+            ? {
+                id: yonetimKuruluBaskani.memberId,
+                name: `${yonetimKuruluBaskani.member.firstName} ${yonetimKuruluBaskani.member.lastName}`,
+              }
+            : undefined
+        }
       />
 
       <div className="grid grid-cols-1 gap-6 mt-6">

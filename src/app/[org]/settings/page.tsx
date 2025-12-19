@@ -22,7 +22,7 @@ export default async function SettingsPage({
   const role = access.role as 'SUPERADMIN' | 'ADMIN' | null
   const canWrite = role === 'SUPERADMIN' || role === 'ADMIN'
 
-  // Fetch full organization details
+  // Fetch full organization details with admin users
   const organization = await prisma.organization.findUnique({
     where: { slug: org },
     select: {
@@ -37,12 +37,42 @@ export default async function SettingsPage({
       logoUrl: true,
       createdAt: true,
       updatedAt: true,
+      memberships: {
+        where: {
+          role: 'ADMIN', // Only show org-level admins, not SUPERADMIN
+        },
+        select: {
+          id: true,
+          role: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
     },
   })
 
   if (!organization) {
     return <div>Dernek bulunamadı.</div>
   }
+
+  // Transform memberships to admin users
+  const adminUsers = organization.memberships.map((m) => ({
+    id: m.user.id,
+    membershipId: m.id,
+    firstName: m.user.firstName || '',
+    lastName: m.user.lastName || '',
+    email: m.user.email || '',
+    role: m.role,
+  }))
 
   return (
     <main>
@@ -57,10 +87,19 @@ export default async function SettingsPage({
         <SettingsClient
           org={org}
           initialData={{
-            ...organization,
+            id: organization.id,
+            name: organization.name,
+            slug: organization.slug,
+            description: organization.description,
+            address: organization.address,
+            phone: organization.phone,
+            email: organization.email,
+            website: organization.website,
+            logoUrl: organization.logoUrl,
             createdAt: organization.createdAt.toISOString(),
             updatedAt: organization.updatedAt.toISOString(),
           }}
+          adminUsers={adminUsers}
           canWrite={canWrite}
         />
       </div>

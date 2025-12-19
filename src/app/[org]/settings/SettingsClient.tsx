@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
@@ -26,7 +26,20 @@ const schema = z.object({
     .or(z.literal('')),
 })
 
+const addAdminSchema = z.object({
+  firstName: z.string().min(2, 'En az 2 karakter'),
+  lastName: z.string().min(2, 'En az 2 karakter'),
+  email: z.string().email('Geçerli e-posta girin'),
+  password: z.string().min(6, 'Şifre en az 6 karakter olmalıdır'),
+})
+
+const updatePasswordSchema = z.object({
+  password: z.string().min(6, 'Şifre en az 6 karakter olmalıdır'),
+})
+
 type FormValues = z.infer<typeof schema>
+type AddAdminFormValues = z.infer<typeof addAdminSchema>
+type UpdatePasswordFormValues = z.infer<typeof updatePasswordSchema>
 
 interface Organization {
   id: string
@@ -42,15 +55,26 @@ interface Organization {
   updatedAt: string
 }
 
+interface AdminUser {
+  id: string
+  membershipId: string
+  firstName: string
+  lastName: string
+  email: string
+  role: string
+}
+
 interface SettingsClientProps {
   org: string
   initialData: Organization
+  adminUsers: AdminUser[]
   canWrite: boolean
 }
 
 export function SettingsClient({
   org,
   initialData,
+  adminUsers,
   canWrite,
 }: SettingsClientProps) {
   const router = useRouter()
@@ -61,6 +85,15 @@ export function SettingsClient({
     initialData.logoUrl || null
   )
   const [removeLogo, setRemoveLogo] = useState(false)
+
+  // Admin management state
+  const [showAddAdmin, setShowAddAdmin] = useState(false)
+  const [isAddingAdmin, setIsAddingAdmin] = useState(false)
+  const [passwordEditUserId, setPasswordEditUserId] = useState<string | null>(
+    null
+  )
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
 
   const {
     register,
@@ -78,6 +111,26 @@ export function SettingsClient({
       address: initialData.address || '',
       website: initialData.website || '',
     },
+  })
+
+  // Add admin form
+  const {
+    register: registerAddAdmin,
+    handleSubmit: handleSubmitAddAdmin,
+    reset: resetAddAdmin,
+    formState: { errors: addAdminErrors },
+  } = useForm<AddAdminFormValues>({
+    resolver: zodResolver(addAdminSchema),
+  })
+
+  // Update password form
+  const {
+    register: registerPassword,
+    handleSubmit: handleSubmitPassword,
+    reset: resetPassword,
+    formState: { errors: passwordErrors },
+  } = useForm<UpdatePasswordFormValues>({
+    resolver: zodResolver(updatePasswordSchema),
   })
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,6 +219,91 @@ export function SettingsClient({
       hour: '2-digit',
       minute: '2-digit',
     })
+  }
+
+  // Add admin handler
+  const onAddAdmin = async (values: AddAdminFormValues) => {
+    setIsAddingAdmin(true)
+    try {
+      const res = await fetch(`/api/${org}/admins`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      })
+
+      if (res.ok) {
+        toast.add({ variant: 'success', title: 'Yönetici eklendi' })
+        resetAddAdmin()
+        setShowAddAdmin(false)
+        router.refresh()
+      } else {
+        const data = await res.json().catch(() => null)
+        toast.add({
+          variant: 'error',
+          title: 'Hata',
+          description: data?.error ?? 'Yönetici eklenemedi',
+        })
+      }
+    } finally {
+      setIsAddingAdmin(false)
+    }
+  }
+
+  // Update password handler
+  const onUpdatePassword = async (values: UpdatePasswordFormValues) => {
+    if (!passwordEditUserId) return
+    setIsUpdatingPassword(true)
+    try {
+      const res = await fetch(`/api/${org}/admins`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: passwordEditUserId,
+          password: values.password,
+        }),
+      })
+
+      if (res.ok) {
+        toast.add({ variant: 'success', title: 'Şifre güncellendi' })
+        resetPassword()
+        setPasswordEditUserId(null)
+      } else {
+        const data = await res.json().catch(() => null)
+        toast.add({
+          variant: 'error',
+          title: 'Hata',
+          description: data?.error ?? 'Şifre güncellenemedi',
+        })
+      }
+    } finally {
+      setIsUpdatingPassword(false)
+    }
+  }
+
+  // Delete admin handler
+  const onDeleteAdmin = async (userId: string) => {
+    setDeletingUserId(userId)
+    try {
+      const res = await fetch(`/api/${org}/admins`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+
+      if (res.ok) {
+        toast.add({ variant: 'success', title: 'Yönetici kaldırıldı' })
+        router.refresh()
+      } else {
+        const data = await res.json().catch(() => null)
+        toast.add({
+          variant: 'error',
+          title: 'Hata',
+          description: data?.error ?? 'Yönetici kaldırılamadı',
+        })
+      }
+    } finally {
+      setDeletingUserId(null)
+    }
   }
 
   if (!isEditing) {
@@ -344,6 +482,311 @@ export function SettingsClient({
               )}
             </p>
           </div>
+        </div>
+
+        {/* Admin Users Section */}
+        <div className="border-t pt-6 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
+                <svg
+                  className="h-4 w-4 text-emerald-600 dark:text-emerald-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Yöneticiler</h3>
+                <p className="text-sm text-muted-foreground">
+                  Dernek yönetim yetkisine sahip kullanıcılar
+                </p>
+              </div>
+            </div>
+            {canWrite && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAddAdmin(true)}
+              >
+                <svg
+                  className="w-4 h-4 mr-1.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Yönetici Ekle
+              </Button>
+            )}
+          </div>
+
+          {/* Add Admin Form */}
+          {showAddAdmin && (
+            <div className="mb-6 p-4 rounded-lg border bg-muted/50">
+              <h4 className="font-medium mb-4">Yeni Yönetici Ekle</h4>
+              <form
+                onSubmit={handleSubmitAddAdmin(onAddAdmin)}
+                className="space-y-4"
+              >
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Ad <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      {...registerAddAdmin('firstName')}
+                      placeholder="Ad"
+                    />
+                    {addAdminErrors.firstName && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {addAdminErrors.firstName.message}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Soyad <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      {...registerAddAdmin('lastName')}
+                      placeholder="Soyad"
+                    />
+                    {addAdminErrors.lastName && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {addAdminErrors.lastName.message}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      E-posta <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="email"
+                      {...registerAddAdmin('email')}
+                      placeholder="ornek@email.com"
+                    />
+                    {addAdminErrors.email && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {addAdminErrors.email.message}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Şifre <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="password"
+                      {...registerAddAdmin('password')}
+                      placeholder="En az 6 karakter"
+                    />
+                    {addAdminErrors.password && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {addAdminErrors.password.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={isAddingAdmin} size="sm">
+                    {isAddingAdmin ? 'Ekleniyor…' : 'Ekle'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      resetAddAdmin()
+                      setShowAddAdmin(false)
+                    }}
+                    disabled={isAddingAdmin}
+                  >
+                    İptal
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {adminUsers.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {adminUsers.map((admin) => (
+                <div
+                  key={admin.id}
+                  className="rounded-lg border bg-card p-4 shadow-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
+                      <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                        {(admin.firstName?.[0] || '') +
+                          (admin.lastName?.[0] || '')}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">
+                        {admin.firstName} {admin.lastName}
+                      </p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {admin.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Password Edit Form */}
+                  {passwordEditUserId === admin.id ? (
+                    <form
+                      onSubmit={handleSubmitPassword(onUpdatePassword)}
+                      className="mt-3 space-y-2"
+                    >
+                      <div>
+                        <Input
+                          type="password"
+                          {...registerPassword('password')}
+                          placeholder="Yeni şifre (en az 6 karakter)"
+                          className="h-9 text-sm"
+                        />
+                        {passwordErrors.password && (
+                          <p className="mt-1 text-xs text-red-600">
+                            {passwordErrors.password.message}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="submit"
+                          size="sm"
+                          disabled={isUpdatingPassword}
+                          className="h-8 text-xs"
+                        >
+                          {isUpdatingPassword ? 'Kaydediliyor…' : 'Kaydet'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            resetPassword()
+                            setPasswordEditUserId(null)
+                          }}
+                          disabled={isUpdatingPassword}
+                        >
+                          İptal
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    canWrite && (
+                      <div className="mt-3 flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            resetPassword()
+                            setPasswordEditUserId(admin.id)
+                          }}
+                        >
+                          <svg
+                            className="w-3 h-3 mr-1"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                            />
+                          </svg>
+                          Şifre Değiştir
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                          onClick={() => {
+                            if (
+                              confirm(
+                                'Bu yöneticiyi kaldırmak istediğinize emin misiniz?'
+                              )
+                            ) {
+                              onDeleteAdmin(admin.id)
+                            }
+                          }}
+                          disabled={deletingUserId === admin.id}
+                        >
+                          {deletingUserId === admin.id ? (
+                            'Siliniyor…'
+                          ) : (
+                            <>
+                              <svg
+                                className="w-3 h-3 mr-1"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                              Kaldır
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <svg
+                className="w-12 h-12 mx-auto mb-3 opacity-50"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
+              <p>Henüz yönetici eklenmemiş</p>
+              {canWrite && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => setShowAddAdmin(true)}
+                >
+                  İlk Yöneticiyi Ekle
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="border-t pt-4 mt-6">
