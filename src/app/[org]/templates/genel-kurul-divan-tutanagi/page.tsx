@@ -34,6 +34,56 @@ export default async function GenelKurulDivanTutanagiPage({
     },
   })
 
+  // Get total member count for the organization
+  const totalMemberCount = await prisma.member.count({
+    where: {
+      organizationId: access.org.id,
+      status: 'ACTIVE',
+    },
+  })
+
+  // Get all organization members for the dropdown picker
+  const allMembers = await prisma.member.findMany({
+    where: {
+      organizationId: access.org.id,
+      status: 'ACTIVE',
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+    },
+    orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+  })
+
+  const availableMembers = allMembers.map((m) => ({
+    id: m.id,
+    name: `${m.firstName} ${m.lastName}`,
+  }))
+
+  // Get the current "Yönetim Kurulu Başkanı" from the active term
+  const yonetimKuruluBaskani = await prisma.boardMember.findFirst({
+    where: {
+      role: 'PRESIDENT',
+      term: {
+        isActive: true,
+        board: {
+          organizationId: access.org.id,
+          type: 'EXECUTIVE',
+        },
+      },
+    },
+    select: {
+      memberId: true,
+      member: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+    },
+  })
+
   return (
     <div>
       <div className="mb-6 flex items-center gap-4">
@@ -50,7 +100,20 @@ export default async function GenelKurulDivanTutanagiPage({
         </div>
       </div>
 
-      <GenelKurulDivanEditor orgName={org?.name || 'Dernek Adı'} />
+      <GenelKurulDivanEditor
+        orgName={org?.name || 'Dernek Adı'}
+        orgAddress={org?.address || ''}
+        totalMemberCount={totalMemberCount}
+        availableMembers={availableMembers}
+        yonetimKuruluBaskani={
+          yonetimKuruluBaskani
+            ? {
+                id: yonetimKuruluBaskani.memberId,
+                name: `${yonetimKuruluBaskani.member.firstName} ${yonetimKuruluBaskani.member.lastName}`,
+              }
+            : undefined
+        }
+      />
 
       <div className="grid grid-cols-1 gap-6 mt-6">
         <Card>

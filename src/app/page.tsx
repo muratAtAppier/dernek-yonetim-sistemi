@@ -3,8 +3,6 @@ import { authOptions } from '@/lib/auth'
 import Hero from '@/components/landing/Hero'
 import FeatureCard from '@/components/landing/FeatureCard'
 import Footer from '@/components/landing/Footer'
-import Showcase from '@/components/landing/Showcase'
-import CTA from '@/components/landing/CTA'
 import Reveal from '@/components/landing/Reveal'
 import {
   Users,
@@ -89,14 +87,6 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-
-      <Reveal delay={100}>
-        <Showcase />
-      </Reveal>
-
-      <Reveal delay={100}>
-        <CTA />
-      </Reveal>
 
       <Footer />
     </div>
